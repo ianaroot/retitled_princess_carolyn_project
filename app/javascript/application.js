@@ -12,4 +12,12 @@ import MovesCalculator from "gameplay/moves_calculator"
 import Rules from "gameplay/rules"
 import View from "gameplay/view"
 
-var gameController = new GameController()
+// var gameController = new GameController()
+// window.addEventListener('load', function () {
+//     var gameController = new GameController()
+// })
+
+document.addEventListener('turbo:load', () => {
+    var gameController = new GameController()
+  });
+  
