@@ -1,0 +1,124 @@
+/* board */
+#chess-board {
+  margin-left: 40px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  border: 4px solid #04033d;
+  -moz-box-sizing: content-box;
+  box-sizing: content-box;
+  width: 392;
+  height: 392;
+}
+
+#undo-button {
+  border-radius: 2px;
+  color: #000000;
+  background-color: #fce38f;
+  position: absolute;
+  left: 620px;
+  top: 300px;
+  heigh: 12px;
+  width: 60px;
+  text-align: center;
+}
+
+#pause-button {
+  border-radius: 2px;
+  color: #000000;
+  background-color: #fce38f;
+  position: absolute;
+  left: 620px;
+  top: 350px;
+  heigh: 12px;
+  width: 60px;
+  text-align: center;
+}
+
+#arena {
+  margin-left: 80px;
+  height: 900px;
+}
+
+/* square */
+.chess-tile {
+  float: left;
+  position: relative;
+  height: 49px;
+  width: 49px;
+
+  /* disable any native browser highlighting */
+  -webkit-touch-callout: none;
+    -webkit-user-select: none;
+     -khtml-user-select: none;
+       -moz-user-select: none;
+        -ms-user-select: none;
+            user-select: none;
+}
+
+/* white square */
+.white-tile {
+  background-color: #f0d9b5;
+  color: #b58863;
+}
+
+/* black square */
+.black-tile {
+  background-color: #b58863;
+  color: #f0d9b5;
+}
+
+/* highlighted square */
+.highlight1, .highlight2 {
+  -webkit-box-shadow: inset 0 0 3px 3px yellow;
+  -moz-box-shadow: inset 0 0 3px 3px yellow;
+  box-shadow: inset 0 0 3px 3px yellow;
+}
+
+body {
+    background-color: #420505;
+    color: #fce38f;
+    
+  .captures {
+    background-color: #fce38f;
+    border-radius: 10px;
+    border: 2px solid #000000;
+    height: 49;
+    width: 490
+  }
+}
+/* 
+.no-border {
+  border: 0px;
+} */
+/* table, tr {
+  border: 0px;
+} */
+table, tr, td {
+  border: 1px solid black;
+  font-size: 45px;
+  text-align:center;
+  vertical-align:middle;
+}
+
+
+#turn-marker {
+  /* margin-top: : 20px; */
+  margin-left: 195px;
+  margin-bottom: 15px;
+  padding-top: 10px;
+}
+#notifications {
+  /* margin-top: : 20px; */
+  background-color: #fce38f;
+  margin-left: 25px;
+  width: 430px;
+  height: 30px;
+  text-align: center;
+  margin-bottom: 10px;
+  padding-top: 25px;
+  border-radius: 10px;
+  color: black;
+  font-size: 18;
+  font-weight: bold;
+}
+
