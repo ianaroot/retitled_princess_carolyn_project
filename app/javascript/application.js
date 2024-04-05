@@ -11,6 +11,7 @@ import MovementType from "gameplay/movement_type"
 import MovesCalculator from "gameplay/moves_calculator"
 import Rules from "gameplay/rules"
 import View from "gameplay/view"
+import Sound from "gameplay/sound"
 
 // var gameController = new GameController()
 // window.addEventListener('load', function () {
@@ -20,4 +21,3 @@ import View from "gameplay/view"
 document.addEventListener('turbo:load', () => {
     var gameController = new GameController()
   });
-  

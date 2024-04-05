@@ -3,6 +3,7 @@ import View	from "gameplay/view"
 import Api	from "gameplay/api"
 import Bot	from "gameplay/bot"
 import Rules from "gameplay/rules"
+import Sound from "gameplay/sound"
 
 const throwIfMissing = p => { throw new Error(`Missing parameter: ${p}`) }
 
@@ -54,6 +55,8 @@ class GameController {
 				}
 			}
 		}
+
+		Sound.playSound("move")
 		this.view.displayLayOut({board: board, alert: alert, startPosition: startPosition})
 		if(this.movingTeamHasBot() && !this._paused ){
 			let queryMove = this.queryNextBotMove.bind(this)
