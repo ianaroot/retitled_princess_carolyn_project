@@ -16,10 +16,13 @@ class Bot {
         console.log("weightedMoves")
         console.log(weightedMoves)
 
+        // opening never looks to capture. not sure if the others do either
     let moveIdeas = this.pickNweightiestMovesFrom(weightedMoves, 8)
     let move = moveIdeas[Math.floor(Math.random()*moveIdeas.length)];
-    console.log(this.homeTeam)
-    console.log(move)
+    // console.log(this.homeTeam)
+    // console.log(move)
+    console.log("MOVE IDEAS")
+    console.log(moveIdeas)
     return move
 
   }
@@ -45,6 +48,10 @@ class Bot {
 
   calculateGamePhase({team: team, board: board}){
     let kingPosition = board.kingPosition(team);
+    console.log("backrank black")
+    console.log(this.backRankHasMinorPieces({team: team, board: board}))
+    console.log("white")
+    console.log(this.backRankHasMinorPieces({team: Board.WHITE, board: board}))
     if ( board.remainingPieceValueFor( Board.opposingTeam(team) ) <= 13 ) {
       return "end";
     } else if ( !this.backRankHasMinorPieces({team: team, board: board})) {
@@ -57,20 +64,22 @@ class Bot {
   }
 
   backRankHasMinorPieces({team: team, board: board}){
-    let backRank = this.backRank({team: team, board: board})
+    let backRank = this.backRank({team: team, board: board}),
+      minorsDetected = false;
     for( let i = 0; i < backRank.length; i++){
       let pieceObject = backRank[i],
           pieceSpecies = Board.parseSpecies( pieceObject ),
           pieceTeam = Board.parseTeam( pieceObject );
-      if( pieceTeam === team && Board.MINOR_PIECES.includes(pieceSpecies) ){ return true}
+      if( pieceTeam === team && Board.MINOR_PIECES.includes(pieceSpecies) ){ minorsDetected = true}
     }
+    return minorsDetected;
   }
 
   backRank({team: team, board: board}){
     if( team === Board.WHITE){
       var squares = ["a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1"]
     } else {
-      // do i want to reverse this to mimic looking at the board from black's perspective? computer doesn't care, but human user might appreciate? that's me.. this is my bot not the api
+      // do i want to reverse this to mimic looking at the board from black's perspective? computer doesn't care, but human user might appreciate? that's me... this is my bot not the api
       var squares = ["a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"]
     }
     let backRankPieces =  []
@@ -108,7 +117,7 @@ class Bot {
           newlyAvailableMoves = this.api.availableMovesFor({movingTeam: team, board: newBoard}),
           accessibleSquaresWeight = this.weightAccessibleSquares(newlyAvailableMoves) - this.weightAccessibleSquares(moves),
           seekCheckMate = this.seekCheckMate(board, move, team),
-          avoidCheckMate = this.avoidCheckMate(board, move, team),// passing in newBoard seibnce we want to see the opponents possible responses
+          avoidCheckMate = this.avoidCheckMate(newBoard, move, team),// passing in newBoard seibnce we want to see the opponents possible responses
           stackDeckForCastle = this.stackDeckForCastle( board, move, 20 ),
           limitNonCastleKingMoves = this.limitNonCastleKingMoves( board, move ),
           discourageEarlyQueenMovement = this.discourageEarlyQueenMovement( board, move );
@@ -122,6 +131,7 @@ class Bot {
         weightedMoves[weight] = [moves[i]]
       }
     }
+    console.log(weightedMoves)
     return weightedMoves
   }
 
@@ -498,7 +508,9 @@ class Bot {
       let weight = sortedWeights[i],
         moves = weightedMoves[weight];
       for( let j = 0; j < moves.length; j++){
-        nWeights.push(moves[j])
+        if (nWeights.length < n){
+          nWeights.push(moves[j])
+        }
       }
     }
     return nWeights

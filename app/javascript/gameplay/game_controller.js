@@ -48,15 +48,19 @@ class GameController {
 				alert = moveObject.alert;
 				if( /#/.exec(lastNotation) ){
 					alert = "checkmate"
+					Sound.playSound("check")
 				} else if( /\+/.exec(lastNotation) ) {
 					alert = "check"
+					Sound.playSound("check")
 				} else if( board.gameOver === true ){
 					alert = "stalemate"
+					Sound.playSound("move")
+				} else {
+					Sound.playSound("move")
 				}
 			}
 		}
 
-		Sound.playSound("move")
 		this.view.displayLayOut({board: board, alert: alert, startPosition: startPosition})
 		if(this.movingTeamHasBot() && !this._paused ){
 			let queryMove = this.queryNextBotMove.bind(this)

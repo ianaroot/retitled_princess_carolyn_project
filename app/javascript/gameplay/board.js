@@ -339,7 +339,7 @@ class Board {
     // if its a bishop, is there another bishop on the right square color?
     // if it it's a night, is there anot
 
-    // oooh! could you bump into your teammate from the position you just assumed!! take their rank and file, compare, apply the difference
+    // oooh! could you bump into your teammate from the position you just assumed!! take their rank and file, compare, apply the difference... doesn't work for pawns
     let pieceNotation = moveObject.pieceNotation
     if( /[QNBR]/.exec(pieceNotation) ){
 
