@@ -8,19 +8,19 @@ class Bot {
 
   determineMove(args){
     let board = args["board"],
-        availableMoves = this.api.availableMovesDefault(),
-        gamePhase = this.calculateGamePhase({team: this.homeTeam, board: board}),
-        weightMoves = this.gamePhasePriorities[gamePhase],
-        weightedMoves = weightMoves({moves: availableMoves, board: board, team: this.homeTeam});
+      availableMoves = this.api.availableMovesDefault(),
+      gamePhase = this.calculateGamePhase({team: this.homeTeam, board: board}),
+      weightMoves = this.gamePhasePriorities[gamePhase],
+      weightedMoves = weightMoves({moves: availableMoves, board: board, team: this.homeTeam});
 
-        console.log("weightedMoves")
-        console.log(weightedMoves)
+    console.log("gamePhase")
+    console.log(gamePhase)
+    console.log("weightedMoves")
+    console.log(weightedMoves)
 
-        // opening never looks to capture. not sure if the others do either
-    let moveIdeas = this.pickNweightiestMovesFrom(weightedMoves, 8)
-    let move = moveIdeas[Math.floor(Math.random()*moveIdeas.length)];
-    // console.log(this.homeTeam)
-    // console.log(move)
+    // opening never looks to capture. not sure if the others do either
+    let moveIdeas = this.pickNweightiestMovesFrom(weightedMoves, 8),
+        move = moveIdeas[Math.floor(Math.random()*moveIdeas.length)];
     console.log("MOVE IDEAS")
     console.log(moveIdeas)
     return move
@@ -117,7 +117,7 @@ class Bot {
           newlyAvailableMoves = this.api.availableMovesFor({movingTeam: team, board: newBoard}),
           accessibleSquaresWeight = this.weightAccessibleSquares(newlyAvailableMoves) - this.weightAccessibleSquares(moves),
           seekCheckMate = this.seekCheckMate(board, move, team),
-          avoidCheckMate = this.avoidCheckMate(newBoard, move, team),// passing in newBoard seibnce we want to see the opponents possible responses
+          avoidCheckMate = this.avoidCheckMate(newBoard, move, team),// passing in newBoard since we want to see the opponents possible responses
           stackDeckForCastle = this.stackDeckForCastle( board, move, 20 ),
           limitNonCastleKingMoves = this.limitNonCastleKingMoves( board, move ),
           discourageEarlyQueenMovement = this.discourageEarlyQueenMovement( board, move );

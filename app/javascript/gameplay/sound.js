@@ -1,10 +1,12 @@
 class Sound {
 
     static playSound(sound){
-        var url = this.getSoundUrl(sound)
+        if( sound != '' ){
+            var url = this.getSoundUrl(sound)
 
-        var a = new Audio(url);
-        a.play();
+            var a = new Audio(url);
+            a.play();
+        }
     }
 
     static getSoundUrl(sound){

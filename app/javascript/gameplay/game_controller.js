@@ -10,7 +10,7 @@ const throwIfMissing = p => { throw new Error(`Missing parameter: ${p}`) }
 class GameController {
 	constructor(){
 		this.board = new Board({});
-    this.view = new View(this);
+		this.view = new View(this);
 		this._paused = false
 		this.view.displayLayOut({board: this.board, alert: ""})
 		this.view.setTileClickListener()
@@ -28,40 +28,52 @@ class GameController {
 
 	attemptMove(startPosition = throwIfMissing("startPosition"), endPosition = throwIfMissing("endPosition")) {
 		var board = this.board,
-		alert = "";
+			alert = "",
+			sound = "";
+		sound
 		if( board.gameOver ){
 			return
 		}
-    if ( !Board._inBounds(endPosition) ){
-      alert = 'stay on the board, fool'
-    } else if( board.occupiedByTeamMate({position: endPosition, teamString: board.allowedToMove}) ){
-      alert = "what, are you trying to capture your own piece?"
-    } else {
+		// shouldn't the board be making sure neither of these happens?
+		// also, what happens after the alert????
+		if ( !Board._inBounds(endPosition) ){
+		alert = 'stay on the board, fool'
+		} else if( board.occupiedByTeamMate({position: endPosition, teamString: board.allowedToMove}) ){
+		alert = "what, are you trying to capture your own piece?"
+		} else {
 
 			var moveObject = Rules.getMoveObject(startPosition, endPosition, board);
 			if( moveObject.illegal ){
 				alert = "illegal move attempted"
+				// also, what happens after the alert????
+
 			} else {
 
 				board._officiallyMovePiece( moveObject )
-				let lastNotation = board.movementNotation[board.movementNotation.length -1];
-				alert = moveObject.alert;
+				let lastNotation = board.movementNotation[board.movementNotation.length -1],
+					alert = moveObject.alert,
+					sound = "move";
 				if( /#/.exec(lastNotation) ){
 					alert = "checkmate"
-					Sound.playSound("check")
+					sound = "check"
 				} else if( /\+/.exec(lastNotation) ) {
 					alert = "check"
-					Sound.playSound("check")
+					sound = "check"
 				} else if( board.gameOver === true ){
 					alert = "stalemate"
-					Sound.playSound("move")
+					sound = "move"
 				} else {
-					Sound.playSound("move")
+					sound = "move"
 				}
+				console.log('sound')
+				console.log(sound)
 			}
 		}
+		console.log('sound')
+		console.log(sound)
 
 		this.view.displayLayOut({board: board, alert: alert, startPosition: startPosition})
+		Sound.playSound(sound)
 		if(this.movingTeamHasBot() && !this._paused ){
 			let queryMove = this.queryNextBotMove.bind(this)
 			setTimeout( function(){  queryMove() }, 400)
@@ -94,6 +106,8 @@ class GameController {
 			this.view.displayLayOut({board: this.board})
 		}
 	}
+	// THIS FUNCTION NOT CURRENTLY IN USE, STILL HAS GHOST COMMENTED OUT BELOW
+
 	runMoves(moveArray){
 		var func = this.runMoves.bind(this)
 		if (moveArray.length > 1 ) {

@@ -363,15 +363,15 @@ class Board {
     let startPosition = moveObject.startPosition,
       endPosition = moveObject.endPosition,
       additionalActions = moveObject.additionalActions,
-      pieceObject = this.pieceObject(startPosition);
+      pieceObject = this.pieceObject(startPosition),
+      stringyLayOut = JSON.stringify(this.layOut);
 
-
-    let stringyLayOut = JSON.stringify(this.layOut)
     if(/,/.exec(this.previousLayouts)){
       this.previousLayouts = this.previousLayouts.replace(/]$/, "," + stringyLayOut + "]" )
     } else {
       this.previousLayouts = "[" + stringyLayOut + "]"
     }
+
 
     this._emptify(startPosition)
     if( !this.positionEmpty(endPosition) ){ this._capture(endPosition); }
