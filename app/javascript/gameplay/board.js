@@ -383,6 +383,26 @@ class Board {
     // this.movementNotation.push( prefixNotation + (epNotation || "") + notationSuffix)
     this._recordNotationFrom({ moveObject: moveObject, epNotation: (epNotation || ""), notationSuffix:  notationSuffix })
     if( !this.gameOver ){ this._nextTurn() }
+    
+  }
+
+  get_alerts_and_sounds(){
+    let lastNotation = this.movementNotation[this.movementNotation.length -1],
+      alert = "",
+      sound = "move";
+    if( /#/.exec(lastNotation) ){
+      alert = "checkmate"
+      sound = "check"
+    } else if( /\+/.exec(lastNotation) ) {
+      alert = "check"
+      sound = "check"
+    } else if( this.gameOver === true ){
+      alert = "stalemate"
+      sound = "move"
+    } else {
+      sound = "move"
+    }
+    return {alert: alert, sound: sound}
   }
 
   _capture(position){

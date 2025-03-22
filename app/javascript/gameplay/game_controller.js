@@ -50,23 +50,10 @@ class GameController {
 			} else {
 
 				board._officiallyMovePiece( moveObject )
-				let lastNotation = board.movementNotation[board.movementNotation.length -1],
-					alert = moveObject.alert,
-					sound = "move";
-				if( /#/.exec(lastNotation) ){
-					alert = "checkmate"
-					sound = "check"
-				} else if( /\+/.exec(lastNotation) ) {
-					alert = "check"
-					sound = "check"
-				} else if( board.gameOver === true ){
-					alert = "stalemate"
-					sound = "move"
-				} else {
-					sound = "move"
-				}
-				console.log('sound')
-				console.log(sound)
+				let alerts_and_sounds = this.get_alerts_and_sounds();
+
+				alert = alerts_and_sounds.alert
+				sound = alerts_and_sounds.sound
 			}
 		}
 		console.log('sound')
@@ -78,6 +65,10 @@ class GameController {
 			let queryMove = this.queryNextBotMove.bind(this)
 			setTimeout( function(){  queryMove() }, 400)
 		}
+	}
+
+	get_alerts_and_sounds(){
+		return this.board.get_alerts_and_sounds()
 	}
 
 	movingTeamHasBot(){
