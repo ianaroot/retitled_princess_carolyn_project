@@ -21,6 +21,7 @@ class Api {
     }
      return captures
   }
+  
   movementNotation(){
     return this._board.movementNotation
   }

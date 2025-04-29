@@ -2,9 +2,8 @@ import Layout from "gameplay/layout";
 import Rules from "gameplay/rules";
 
 class Board {
-  // TODO might be easier to store the moveObjects and recreate noatation on demand!!!
+  // TODO might be easier to store the moveObjects and recreate notation on demand!!!
   constructor({layOut: layOut, capturedPieces: capturedPieces, gameOver: gameOver, allowedToMove: allowedToMove, movementNotation: movementNotation, previousLayouts: previousLayouts}){
-    // this.layOut = layOut|| Layout.approachingMate()
     this.layOut = layOut|| Layout.default()
     this.capturedPieces = capturedPieces || [];
     this.gameOver = gameOver || false;
@@ -19,6 +18,7 @@ class Board {
 
   static get PAWN()   { return "P" }
   static get ROOK()   { return "R" }
+  // NIGHT INSTEAD OF KNIGHT FOR NOTATION
   static get NIGHT()  { return "N" }
   static get BISHOP() { return "B" }
   static get QUEEN()  { return "Q" }
@@ -161,7 +161,6 @@ class Board {
   }
 
   _undo(){
-    // this.layOut = this.lastLayout()
     let parsedPrevious = JSON.parse(this.previousLayouts);
     this.layOut = parsedPrevious.pop();
     this.previousLayouts = JSON.stringify(parsedPrevious)
@@ -182,6 +181,7 @@ class Board {
         subtractedValue = subtractedValue + Board.pieceValues()[ Board.parseSpecies( piece ) ]
       }
     }
+    // gonna be wrong after promotion
     return 39 - subtractedValue;
   }
 
