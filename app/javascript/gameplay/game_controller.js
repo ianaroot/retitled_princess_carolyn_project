@@ -50,7 +50,7 @@ class GameController {
 			} else {
 
 				board._officiallyMovePiece( moveObject )
-				let alerts_and_sounds = this.get_alerts_and_sounds();
+				let alerts_and_sounds = this.getAlertsAndSounds();
 
 				alert = alerts_and_sounds.alert
 				sound = alerts_and_sounds.sound
@@ -67,8 +67,8 @@ class GameController {
 		}
 	}
 
-	get_alerts_and_sounds(){
-		return this.board.get_alerts_and_sounds()
+	getAlertsAndSounds(){
+		return this.board.getAlertsAndSounds()
 	}
 
 	movingTeamHasBot(){

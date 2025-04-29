@@ -234,16 +234,29 @@ class Board {
     if( typeof( position ) === 'string' && position.match(/[a-z]\d/) && position.length === 2){
       return Board.gridCalculatorReverse( position )
     } else {
+      // IS THIS A FAIL SAFE OR DOES THIS HAPPEN?
       return position
     }
   }
 
   _blackPawnAt(position){
-    return Board.parseTeam( this.pieceObject(position) )=== Board.BLACK && Board.parseSpecies( this.pieceObject(position) ) === Board.PAWN
+    return  this._blackPieceCheck(position) && this._pawnCheck(position)
   }
 
   _whitePawnAt(position){
-    return Board.parseTeam( this.pieceObject(position) )=== Board.WHITE && Board.parseSpecies( this.pieceObject(position) ) === Board.PAWN
+    return this._whitePieceCheck(position) && this._pawnCheck(position)
+  }
+
+  _blackPieceCheck(position){
+    return Board.parseTeam( this.pieceObject(position) ) === Board.BLACK
+  }
+
+  _whitePieceCheck(position){
+    return Board.parseTeam( this.pieceObject(position) ) === Board.WHITE
+  }
+
+  _pawnCheck(position){
+    Board.parseSpecies( this.pieceObject(position) ) === Board.PAWN
   }
 
   blackPawnDoubleSteppedTo(position){// only to be called if already know the black pawn is at rank 4 and in "position"
@@ -366,27 +379,29 @@ class Board {
       pieceObject = this.pieceObject(startPosition),
       stringyLayOut = JSON.stringify(this.layOut);
 
+    this._recordLayout(stringyLayOut)
+    this._emptify(startPosition)
+    if( !this.positionEmpty(endPosition) ){ this._capture(endPosition); }
+    this._placePiece({ position: endPosition, pieceObject: pieceObject })
+    if( additionalActions ){ var epNotation = additionalActions.call(this, startPosition) }
+    let prefixNotation = moveObject.notation(),
+        notationSuffix = Rules.postMoveQueries( this, prefixNotation );
+    this._recordNotationFrom({ moveObject: moveObject, epNotation: (epNotation || ""), notationSuffix:  notationSuffix })
+    if( !this.gameOver ){ this._nextTurn() }
+  }
+
+  _recordLayout(stringyLayOut){
     if(/,/.exec(this.previousLayouts)){
       this.previousLayouts = this.previousLayouts.replace(/]$/, "," + stringyLayOut + "]" )
     } else {
       this.previousLayouts = "[" + stringyLayOut + "]"
     }
-
-
-    this._emptify(startPosition)
-    if( !this.positionEmpty(endPosition) ){ this._capture(endPosition); }
-    this._placePiece({ position: endPosition, pieceObject: pieceObject })
-    if( additionalActions ){ var epNotation = additionalActions.call(this, startPosition) }
-    // if( additionalActions ){ additionalActions({position: startPosition}) }
-    let prefixNotation = moveObject.notation()
-    let notationSuffix = Rules.postMoveQueries( this, prefixNotation )
-    // this.movementNotation.push( prefixNotation + (epNotation || "") + notationSuffix)
-    this._recordNotationFrom({ moveObject: moveObject, epNotation: (epNotation || ""), notationSuffix:  notationSuffix })
-    if( !this.gameOver ){ this._nextTurn() }
-    
   }
 
-  get_alerts_and_sounds(){
+  // this being here is better than when it was a conditional mess in the game controller, but it ain't right. probably not the board's job even though
+  // ths board is the one that knows the movementNotation, which is how it got here
+
+  getAlertsAndSounds(){
     let lastNotation = this.movementNotation[this.movementNotation.length -1],
       alert = "",
       sound = "move";
@@ -423,10 +438,17 @@ class Board {
     if( Board._inBounds( positionDownAndLeft )){
       let pieceObject = this.layOut[positionDownAndLeft],
         pieceTeam = Board.parseTeam(pieceObject);
-      return this.occupiedByOpponent({position: positionDownAndLeft, teamString: Board.BLACK}) && Board.squareColor(startPosition) === Board.squareColor(positionDownAndLeft)
+        // after the && operator is checking whether the move is pushing a dark square bishop to a light square or something comparable
+        // that might be unnecessary, and definitely could be a separate function
+      return this.occupiedByOpponent({position: positionDownAndLeft, teamString: Board.BLACK}) && this._squareColorsMatch(startPosition, positionDownAndLeft)
+
     } else { // down and left would be off board
       return false
     }
+  }
+
+  _squareColorsMatch(square1, square2){
+    Board.squareColor(square1) === Board.squareColor(square2)
   }
 
   _downAndRightIsAttackable(startPosition){
@@ -434,7 +456,7 @@ class Board {
     if( Board._inBounds( positionDownAndRight ) ){
       let pieceObject = this.layOut[positionDownAndRight],
         pieceTeam = Board.parseTeam(pieceObject);
-      return this.occupiedByOpponent({position: positionDownAndRight, teamString: Board.BLACK}) && Board.squareColor(startPosition) === Board.squareColor(positionDownAndRight)
+      return this.occupiedByOpponent({position: positionDownAndRight, teamString: Board.BLACK}) && this._squareColorsMatch(startPosition, positionDownAndRight)
     } else {
       return false
     }
