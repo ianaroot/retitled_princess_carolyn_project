@@ -10,9 +10,32 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_12_14_220809) do
+ActiveRecord::Schema[7.1].define(version: 2025_12_19_002907) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "bots", force: :cascade do |t|
+    t.bigint "user_id"
+    t.json "commands"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_bots_on_user_id"
+  end
+
+  create_table "games", force: :cascade do |t|
+    t.bigint "bot_1_id"
+    t.bigint "bot_2_id"
+    t.json "layOut"
+    t.json "capturedPieces"
+    t.boolean "gameOver"
+    t.boolean "allowedToMove"
+    t.json "movementNotation"
+    t.json "previousLayouts"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["bot_1_id"], name: "index_games_on_bot_1_id"
+    t.index ["bot_2_id"], name: "index_games_on_bot_2_id"
+  end
 
   create_table "users", force: :cascade do |t|
     t.string "email", default: "", null: false
@@ -26,4 +49,6 @@ ActiveRecord::Schema[7.1].define(version: 2025_12_14_220809) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "games", "bots", column: "bot_1_id"
+  add_foreign_key "games", "bots", column: "bot_2_id"
 end
