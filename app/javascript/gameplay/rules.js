@@ -252,6 +252,7 @@ class Rules {
         inCheck = this.checkQuery({board: board, teamString: otherTeam}),
         noMoves = this.noLegalMoves(board),
         threeFold = this.threeFoldRepetition(board, prefixNotation);
+    // if(  pawnPromotionNotation != ""){ debugger };
     if( inCheck && noMoves ){ board._endGame(attackingTeam); return pawnPromotionNotation + "#" }
     if( inCheck ){ return pawnPromotionNotation + "+" }
     if( noMoves || threeFold ){ board._endGame(); return pawnPromotionNotation }

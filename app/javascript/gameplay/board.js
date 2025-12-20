@@ -137,6 +137,7 @@ class Board {
   }
 
   static parseTeam(string){
+    // console.log("string from inside parseTeam is " + string)
     return string[0]
   }
 
