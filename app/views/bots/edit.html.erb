@@ -22,7 +22,6 @@
 
   <div class="editor-main">
     <div class="canvas-container">
-    <svg id="connections-canvas" class="connections-layer" data-connections="<%= (@connections || []).map { |c| { id: c.id, source: c.source_node_id, target: c.target_node_id } }.to_json %>"></svg>
     <div id="nodes-canvas" class="nodes-layer" data-bot-id="<%= @bot.id %>">
       <% (@nodes || @bot.nodes).each do |node| %>
         <div class="node <%= node.node_type %>" 
@@ -37,6 +36,7 @@
         </div>
       <% end %>
     </div>
+    <svg id="connections-canvas" class="connections-layer" data-connections="<%= (@connections || []).map { |c| { id: c.id, source: c.source_node_id, target: c.target_node_id } }.to_json %>"></svg>
   </div>
 
   <%= render "bots/nodes/editor" %>

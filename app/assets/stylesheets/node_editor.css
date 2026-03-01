@@ -141,6 +141,10 @@
   pointer-events: none;
 }
 
+.connections-layer line {
+  pointer-events: stroke;
+}
+
 .connection-delete-btn {
   position: absolute;
   width: 20px;

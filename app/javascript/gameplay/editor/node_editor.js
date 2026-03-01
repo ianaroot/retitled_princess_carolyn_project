@@ -373,13 +373,25 @@ class NodeEditor {
     const endX = parseFloat(targetNode.element.style.left);
     const endY = parseFloat(targetNode.element.style.top) + 30;
     
+    const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    hitArea.setAttribute('x1', startX);
+    hitArea.setAttribute('y1', startY);
+    hitArea.setAttribute('x2', endX);
+    hitArea.setAttribute('y2', endY);
+    hitArea.setAttribute('stroke', 'transparent');
+    hitArea.setAttribute('stroke-width', '20');
+    hitArea.style.pointerEvents = 'stroke';
+    hitArea.dataset.sourceId = sourceId;
+    hitArea.dataset.targetId = targetId;
+    hitArea.dataset.connectionId = connectionId;
+    
     line.setAttribute('x1', startX);
     line.setAttribute('y1', startY);
     line.setAttribute('x2', endX);
     line.setAttribute('y2', endY);
     line.setAttribute('stroke', '#4CAF50');
     line.setAttribute('stroke-width', '2');
-    line.style.pointerEvents = 'stroke';
+    line.style.pointerEvents = 'none';
     line.dataset.sourceId = sourceId;
     line.dataset.targetId = targetId;
     line.dataset.connectionId = connectionId;
@@ -396,7 +408,7 @@ class NodeEditor {
     deleteBtn.dataset.targetId = targetId;
     deleteBtn.dataset.connectionId = connectionId;
     
-    line.addEventListener('mouseenter', (e) => {
+    hitArea.addEventListener('mouseenter', (e) => {
       if (!this.nodes.has(sourceId) || !this.nodes.has(targetId)) return;
       const sourceEl = this.nodes.get(sourceId).element;
       const targetEl = this.nodes.get(targetId).element;
@@ -404,7 +416,15 @@ class NodeEditor {
       deleteBtn.style.display = 'block';
     });
     
-    line.addEventListener('mouseleave', () => {
+    hitArea.addEventListener('mouseleave', () => {
+      deleteBtn.style.display = 'none';
+    });
+    
+    deleteBtn.addEventListener('mouseenter', () => {
+      deleteBtn.style.display = 'block';
+    });
+    
+    deleteBtn.addEventListener('mouseleave', () => {
       deleteBtn.style.display = 'none';
     });
     
@@ -413,8 +433,9 @@ class NodeEditor {
       this.disconnectNode(sourceId, targetId);
     });
     
+    svg.appendChild(hitArea);
     svg.appendChild(line);
-    svg.appendChild(deleteBtn);
+    this.nodesCanvas.appendChild(deleteBtn);
   }
 
   updateConnections() {
@@ -437,6 +458,15 @@ class NodeEditor {
       line.setAttribute('y1', startY);
       line.setAttribute('x2', endX);
       line.setAttribute('y2', endY);
+      
+      const midX = (startX + endX) / 2;
+      const midY = (startY + endY) / 2;
+      
+      const deleteBtn = document.querySelector('.connection-delete-btn[data-source-id="' + sourceId + '"][data-target-id="' + targetId + '"]');
+      if (deleteBtn) {
+        deleteBtn.style.left = midX + 'px';
+        deleteBtn.style.top = midY + 'px';
+      }
     });
   }
 
@@ -501,7 +531,6 @@ class NodeEditor {
 
   disconnectNode(sourceId, targetId) {
     if (!this.botId) return;
-    if (!confirm('Remove this connection?')) return;
     
     const line = document.querySelector(`line[data-source-id="${sourceId}"][data-target-id="${targetId}"]`);
     const connectionId = line?.dataset.connectionId;
