@@ -22,5 +22,11 @@ import Sound from "gameplay/sound"
 document.addEventListener('turbo:load', () => {
     if (document.getElementById('chess-board')) {
       var gameController = new GameController()
+      
+      // Expose globally for debugging in the console
+      // TODO: Circle back to ensure exposing these globally doesn't introduce 
+      // security or gameplay vulnerabilities in production.
+      window.gameController = gameController;
+      window.api = gameController.api;
     }
   });
