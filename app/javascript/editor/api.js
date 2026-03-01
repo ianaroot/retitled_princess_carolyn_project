@@ -1,15 +1,23 @@
 class EditorApi {
-  constructor(botId, csrfToken) {
+  constructor(botId) {
     this.botId = botId;
-    this.csrfToken = csrfToken;
     this.baseUrl = `/bots/${this.botId}/nodes`;
+  }
+
+  getCsrfToken() {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content 
+        || document.querySelector('[name="csrf-token"]')?.content;
+    if (!token) {
+      throw new Error('CSRF token not found');
+    }
+    return token;
   }
 
   headers(accept = 'application/json') {
     return {
       'Content-Type': 'application/json',
       'Accept': accept,
-      'X-CSRF-Token': this.csrfToken
+      'X-CSRF-Token': this.getCsrfToken()
     };
   }
 
