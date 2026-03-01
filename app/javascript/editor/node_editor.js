@@ -1,9 +1,12 @@
+import EditorApi from "editor/api";
+
 class NodeEditor {
   constructor(canvasId) {
-
     this.canvas = document.getElementById(canvasId);
     this.nodesCanvas = document.getElementById('nodes-canvas');
     this.botId = this.nodesCanvas?.dataset.botId;
+
+    this.api = new EditorApi(this.botId, this.getCsrfToken());
 
     this.nodes = new Map();
     this.connections = [];
@@ -339,17 +342,7 @@ class NodeEditor {
   createConnection(sourceId, targetId) {
     if (!this.botId) return;
     
-    fetch(`/bots/${this.botId}/nodes/${sourceId}/connect`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': this.getCsrfToken()
-      },
-      body: JSON.stringify({
-        target_id: targetId
-      })
-    })
-    .then(res => res.json())
+    this.api.createConnection(sourceId, targetId)
     .then(conn => {
       this.drawConnection(sourceId, targetId, conn.id);
     })
@@ -496,12 +489,7 @@ class NodeEditor {
     if (!this.botId) return;
     
     if (confirm('Delete this node?')) {
-      fetch(`/bots/${this.botId}/nodes/${nodeId}`, {
-        method: 'DELETE',
-        headers: {
-          'X-CSRF-Token': document.querySelector('[name="csrf-token"]')?.content
-        }
-      })
+      this.api.deleteNode(nodeId)
       .then(() => {
         const node = this.nodes.get(nodeId);
         node.element.remove();
@@ -525,12 +513,7 @@ class NodeEditor {
     const connectionId = line?.dataset.connectionId;
     if (!connectionId) return;
     
-    fetch(`/bots/${this.botId}/nodes/${sourceId}/connections/${connectionId}`, {
-      method: 'DELETE',
-      headers: {
-        'X-CSRF-Token': document.querySelector('[name="csrf-token"]')?.content
-      }
-    })
+    this.api.deleteConnection(sourceId, connectionId)
     .then(() => {
       document.querySelectorAll(
         `line[data-source-id="${sourceId}"][data-target-id="${targetId}"], ` +
@@ -580,12 +563,7 @@ class NodeEditor {
     if (nodeData && nodeData.node_type) {
       finishOpen(nodeData);
     } else {
-      fetch(`/bots/${this.botId}/nodes/${nodeId}/edit`, {
-        headers: {
-          'X-CSRF-Token': document.querySelector('[name="csrf-token"]')?.content
-        }
-      })
-      .then(res => res.json())
+      this.api.getNodeEditorData(nodeId)
       .then(node => finishOpen(node))
       .catch(err => console.error('Failed to load node:', err));
     }
@@ -787,29 +765,11 @@ class NodeEditor {
       });
     }
     
-    fetch(`/bots/${this.botId}/nodes/${this.editingNodeId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': document.querySelector('[name="csrf-token"]')?.content
-      },
-      body: JSON.stringify({
-        node: {
-          data: data
-        }
-      })
-    })
-    .then(res => res.json())
+    this.api.updateNode(this.editingNodeId, data)
     .then(node => {
       const nodeEl = this.nodes.get(node.id)?.element;
       if (nodeEl) {
-        fetch(`/bots/${this.botId}/nodes/${node.id}`, {
-          headers: {
-            'Accept': 'text/html',
-            'X-CSRF-Token': document.querySelector('[name="csrf-token"]')?.content
-          }
-        })
-        .then(res => res.text())
+        this.api.getNodePreviewHtml(node.id)
         .then(html => {
           nodeEl.querySelector('.node-content').innerHTML = html;
         });
@@ -827,17 +787,8 @@ class NodeEditor {
   saveNodePosition(nodeId, x, y) {
     if (!this.botId) return;
     
-    fetch(`/bots/${this.botId}/nodes/${nodeId}/update_position`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': document.querySelector('[name="csrf-token"]')?.content
-      },
-      body: JSON.stringify({
-        position_x: x,
-        position_y: y
-      })
-    });
+    this.api.updateNodePosition(nodeId, x, y)
+    .catch(err => console.error('Failed to update position:', err));
   }
 
   addNode(type) {
@@ -858,20 +809,7 @@ class NodeEditor {
       nodeData.data = { action_type: 'move' };
     }
     
-    fetch(`/bots/${this.botId}/nodes`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': this.getCsrfToken()
-      },
-      body: JSON.stringify({ node: nodeData })
-    })
-    .then(res => {
-      if (!res.ok) {
-        return res.text().then(text => { throw new Error(text); });
-      }
-      return res.json();
-    })
+    this.api.createNode(nodeData)
     .then(node => {
       this.renderNode(node);
     })
