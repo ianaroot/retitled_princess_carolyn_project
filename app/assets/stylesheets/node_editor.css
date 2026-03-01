@@ -1,0 +1,399 @@
+.bot-editor {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 100px);
+  background: #1a1a2e;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.editor-toolbar {
+  display: flex;
+  gap: 20px;
+  padding: 10px 20px;
+  background: #16213e;
+  border-bottom: 1px solid #0f3460;
+}
+
+.toolbar-section h3 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: #e94560;
+  text-transform: uppercase;
+}
+
+.toolbar-section button, .toolbar-section a {
+  margin-right: 8px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.toolbar-section button.active {
+  background: #e94560;
+  color: white;
+}
+
+.btn-add-node {
+  background: #0f3460;
+  color: #e94560;
+}
+
+.btn-add-node:hover {
+  background: #1a1a2e;
+}
+
+.btn-back {
+  background: #0f3460;
+  color: white;
+  text-decoration: none;
+}
+
+.btn-test {
+  background: #e94560;
+  color: white;
+  text-decoration: none;
+}
+
+.editor-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  padding: 10px;
+}
+
+.palette-section {
+  display: none;
+  margin-bottom: 20px;
+}
+
+.palette-section.visible {
+  display: block;
+}
+
+.palette-section h4 {
+  margin: 0 0 10px 0;
+  font-size: 11px;
+  color: #aaa;
+  text-transform: uppercase;
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  margin-bottom: 6px;
+  background: #0f3460;
+  border-radius: 4px;
+  cursor: grab;
+  font-size: 12px;
+  color: #eee;
+}
+
+.palette-item:active {
+  cursor: grabbing;
+}
+
+.palette-item.condition {
+  border-left: 3px solid #e94560;
+}
+
+.palette-item.action {
+  border-left: 3px solid #4CAF50;
+}
+
+.node-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.palette-item.condition .node-icon {
+  background: radial-gradient(circle at 30% 30%, #ff6b6b, #c0392b);
+}
+
+.palette-item.action .node-icon {
+  background: linear-gradient(45deg, #4CAF50, #2E7D32);
+  border-radius: 0;
+  transform: rotate(45deg);
+}
+
+.canvas-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #0d1b2a;
+  border: 2px solid #1b263b;
+  border-radius: 8px;
+}
+
+.connections-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.connections-layer line {
+  pointer-events: stroke;
+}
+
+.connection-delete-btn {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #e94560;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  display: none;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+.connection-delete-btn:hover {
+  background: #ff6b6b;
+}
+
+.nodes-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.node {
+  position: absolute;
+  width: 100px;
+  min-height: 60px;
+  background: #0f3460;
+  border-radius: 8px;
+  cursor: move;
+  user-select: none;
+}
+
+.node.condition {
+  border-radius: 50px;
+  border: 2px solid #e94560;
+}
+
+.node.action {
+  border-radius: 4px;
+  border: 2px solid #4CAF50;
+  transform: rotate(0deg);
+}
+
+.node-content {
+  padding: 10px;
+  font-size: 11px;
+  color: #eee;
+}
+
+.node-title {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.node-preview {
+  color: #aaa;
+  font-size: 10px;
+}
+
+.node-connector {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #e94560;
+  border-radius: 50%;
+  cursor: crosshair;
+  border: 2px solid #fff;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.node-connector:hover {
+  transform: translateY(-50%) scale(1.3);
+  box-shadow: 0 0 8px rgba(233, 69, 96, 0.8);
+}
+
+.node.action .node-connector {
+  background: #4CAF50;
+}
+
+.node.action .node-connector:hover {
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.8);
+}
+
+.node-connector.input {
+  left: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.node-connector.output {
+  right: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.node-connector.output:hover {
+  transform: translateY(-50%) scale(1.3);
+}
+
+.node-editor-panel {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  width: 280px;
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 8px;
+  padding: 15px;
+  z-index: 100;
+}
+
+.node-editor-panel.hidden {
+  display: none;
+}
+
+.node-editor-panel h3 {
+  margin: 0 0 15px 0;
+  color: #e94560;
+  font-size: 14px;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #aaa;
+}
+
+.form-group select,
+.form-group input[type="number"] {
+  width: 100%;
+  padding: 6px;
+  background: #0f3460;
+  border: 1px solid #1a1a2e;
+  border-radius: 4px;
+  color: #eee;
+  font-size: 12px;
+}
+
+.form-group.checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.form-group.checkbox input {
+  margin: 0;
+}
+
+.panel-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.btn-save, .btn-cancel {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-save {
+  background: #e94560;
+  color: white;
+}
+
+.btn-cancel {
+  background: #0f3460;
+  color: #aaa;
+}
+
+.node:hover {
+  box-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+}
+
+.node.action:hover {
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+}
+
+.node-editor-section {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #0f3460;
+}
+
+.node-editor-section h4 {
+  margin: 0 0 10px 0;
+  color: #e94560;
+  font-size: 13px;
+}
+
+.editor-part {
+  margin-bottom: 12px;
+}
+
+.editor-part label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #aaa;
+}
+
+.editor-part select,
+.editor-part input {
+  width: 100%;
+  padding: 6px;
+  margin-bottom: 6px;
+  background: #0f3460;
+  border: 1px solid #1a1a2e;
+  border-radius: 4px;
+  color: #eee;
+  font-size: 12px;
+}
+
+.piece-filter {
+  margin-top: 8px;
+  padding-left: 10px;
+  border-left: 2px solid #0f3460;
+}
+
+.piece-filter-option {
+  margin-top: 6px;
+}
+
+.cond-detail-section {
+  margin-top: 8px;
+  padding: 8px;
+  background: #0a1525;
+  border-radius: 4px;
+}
+
+.cond-detail-section label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: #888;
+}
