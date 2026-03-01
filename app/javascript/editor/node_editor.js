@@ -18,6 +18,9 @@ class NodeEditor {
     this.connectionManager = new ConnectionManager(this.api, this.nodes);
     this.dragManager = new DragManager(this.nodes, this.nodesCanvas, this.api, this.connectionManager);
     
+    // Store bound handlers for cleanup
+    this.boundHandleMouseDown = this.handleMouseDown.bind(this);
+    
     // Set up drag callbacks
     this.dragManager.setCallbacks({
       onDragStart: (nodeId) => {
@@ -62,9 +65,7 @@ class NodeEditor {
       });
     });
 
-    document.addEventListener('mousedown', (e) => this.handleMouseDown(e));
-    document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-    document.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+    document.addEventListener('mousedown', this.boundHandleMouseDown);
   }
 
   setTool(tool) {
@@ -94,32 +95,6 @@ class NodeEditor {
       e.preventDefault();
     } else if (!nodeEl) {
       this.closeEditor();
-    }
-  }
-
-  handleMouseMove(e) {
-    this.dragManager.handleMouseMove(e);
-    
-    if (this.connectionManager.isConnecting) {
-      this.connectionManager.updateConnectionLine(e.clientX, e.clientY);
-    }
-  }
-
-  handleMouseUp(e) {
-    this.dragManager.handleMouseUp();
-
-    if (this.connectionManager.isConnecting) {
-      const inputConnector = e.target.closest('.node-connector.input');
-      if (inputConnector) {
-        const targetNode = inputConnector.closest('.node');
-        if (targetNode && this.connectionManager.connectSource) {
-          const sourceNode = this.nodes.get(this.connectionManager.connectSource.nodeId);
-          if (sourceNode && parseInt(targetNode.dataset.id) !== this.connectionManager.connectSource.nodeId) {
-            this.connectionManager.createConnection(this.connectionManager.connectSource.nodeId, parseInt(targetNode.dataset.id));
-          }
-        }
-      }
-      this.connectionManager.endConnection();
     }
   }
 
@@ -258,11 +233,29 @@ class NodeEditor {
     
     return { x, y };
   }
+  
+  // Cleanup method to remove all event listeners
+  destroy() {
+    document.removeEventListener('mousedown', this.boundHandleMouseDown);
+    
+    // Clean up managers
+    this.dragManager.destroy();
+    this.connectionManager.destroy();
+    
+    // Clear nodes map
+    this.nodes.clear();
+  }
 }
 
 export default NodeEditor;
 
 document.addEventListener('turbo:load', () => {
+  // Destroy previous instance if it exists
+  if (window.nodeEditor) {
+    window.nodeEditor.destroy();
+    window.nodeEditor = null;
+  }
+  
   if (document.getElementById('nodes-canvas')) {
     window.nodeEditor = new NodeEditor('nodes-canvas');
   }

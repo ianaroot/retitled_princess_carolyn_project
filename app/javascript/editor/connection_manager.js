@@ -8,13 +8,21 @@ class ConnectionManager {
     this.isConnecting = false;
     this.connectSource = null;
     this.tempLine = null;
+    
+    // Track which connectors already have listeners
+    this._elementsWithListeners = new WeakMap();
+    
+    // Store bound handlers for cleanup
+    this.boundHandleMouseMove = this.handleMouseMove.bind(this);
+    this.boundHandleMouseUp = this.handleMouseUp.bind(this);
   }
 
   loadConnections() {
     this.nodes.forEach((node, id) => {
       const output = node.element.querySelector('.output');
-      if (output) {
+      if (output && !this._elementsWithListeners.has(output)) {
         output.addEventListener('mousedown', (e) => this.startConnection(e, id));
+        this._elementsWithListeners.set(output, true);
       }
     });
   }
@@ -42,6 +50,10 @@ class ConnectionManager {
     e.preventDefault();
     
     this.createTempLine(e.clientX, e.clientY);
+    
+    // Attach document-level listeners only during connection operation
+    document.addEventListener('mousemove', this.boundHandleMouseMove);
+    document.addEventListener('mouseup', this.boundHandleMouseUp);
   }
 
   createTempLine(x, y) {
@@ -64,6 +76,29 @@ class ConnectionManager {
     this.connectionsCanvas.appendChild(this.tempLine);
   }
 
+  handleMouseMove(e) {
+    if (this.isConnecting) {
+      this.updateConnectionLine(e.clientX, e.clientY);
+    }
+  }
+  
+  handleMouseUp(e) {
+    if (!this.isConnecting) return;
+    
+    const inputConnector = e.target.closest('.node-connector.input');
+    if (inputConnector) {
+      const targetNode = inputConnector.closest('.node');
+      if (targetNode && this.connectSource) {
+        const sourceNode = this.nodes.get(this.connectSource.nodeId);
+        if (sourceNode && parseInt(targetNode.dataset.id) !== this.connectSource.nodeId) {
+          this.createConnection(this.connectSource.nodeId, parseInt(targetNode.dataset.id));
+        }
+      }
+    }
+    
+    this.endConnection();
+  }
+
   updateConnectionLine(x, y) {
     if (!this.tempLine) return;
     
@@ -79,6 +114,10 @@ class ConnectionManager {
     }
     this.isConnecting = false;
     this.connectSource = null;
+    
+    // Remove document-level listeners
+    document.removeEventListener('mousemove', this.boundHandleMouseMove);
+    document.removeEventListener('mouseup', this.boundHandleMouseUp);
   }
 
   createConnection(sourceId, targetId) {
@@ -221,6 +260,11 @@ class ConnectionManager {
       ).forEach(el => el.remove());
     })
     .catch(err => console.error('Failed to disconnect:', err));
+  }
+  
+  // Cleanup method for when editor is destroyed
+  destroy() {
+    this.endConnection();
   }
 }
 

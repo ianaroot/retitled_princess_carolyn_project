@@ -12,6 +12,10 @@ class DragManager {
     
     this.onDragStart = null;
     this.onDragEnd = null;
+    
+    // Store bound handlers for cleanup
+    this.boundHandleMouseMove = this.handleMouseMove.bind(this);
+    this.boundHandleMouseUp = this.handleMouseUp.bind(this);
   }
 
   setCallbacks(callbacks) {
@@ -36,6 +40,10 @@ class DragManager {
     if (this.onDragStart) {
       this.onDragStart(nodeId);
     }
+    
+    // Attach document-level listeners only during drag operation
+    document.addEventListener('mousemove', this.boundHandleMouseMove);
+    document.addEventListener('mouseup', this.boundHandleMouseUp);
   }
 
   handleMouseMove(e) {
@@ -81,6 +89,10 @@ class DragManager {
     this.isDragging = false;
     this.positionChanged = false;
     this.selectedNode = null;
+    
+    // Remove document-level listeners
+    document.removeEventListener('mousemove', this.boundHandleMouseMove);
+    document.removeEventListener('mouseup', this.boundHandleMouseUp);
   }
 
   isCurrentlyDragging() {
@@ -89,6 +101,11 @@ class DragManager {
 
   getSelectedNodeId() {
     return this.selectedNode;
+  }
+  
+  // Cleanup method for when editor is destroyed
+  destroy() {
+    this.reset();
   }
 }
 
