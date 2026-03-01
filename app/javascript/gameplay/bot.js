@@ -140,7 +140,6 @@ class Bot {
   }
 
   logTime(){
-    console.log(Math.floor(Date.now() / 1000))
   }
 
   benchMarkRecursivelyProjectMoves(N){
@@ -159,7 +158,6 @@ class Bot {
     }
     let endTime = Math.floor(Date.now() / 1000)
     console.log(weights)
-    console.log( endTime - startTime)
   }
 
   // recursivelyProjectMoves({board: board, move: move, depth: depth, iteration: iteration}){
@@ -233,8 +231,6 @@ class Bot {
     window.losses = []
     let v = (this.recursivelyProjectMoves2({board: this.baseBoard, depth: 3, iteration: 0}))
     let endTime = Math.floor(Date.now() / 1000)
-    console.lo(v)
-    console.log( endTime - startTime)
   }
   recursivelyProjectMoves2({board: board, depth: depth, iteration: iteration}){
     iteration++

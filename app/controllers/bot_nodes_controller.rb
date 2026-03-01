@@ -1,9 +1,16 @@
 class BotNodesController < ApplicationController
   before_action :authenticate_user!
   before_action :set_bot
-  before_action :set_node, only: [:show, :update, :destroy, :update_position]
+  before_action :set_node, only: [:show, :edit, :update, :destroy, :update_position]
 
   def show
+    respond_to do |format|
+      format.html { render partial: 'bots/nodes/preview', locals: { node: @node } }
+      format.json { render json: @node }
+    end
+  end
+
+  def edit
     render json: @node
   end
 

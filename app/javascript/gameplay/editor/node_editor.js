@@ -60,16 +60,6 @@ class NodeEditor {
       move: [
         { name: 'direction', type: 'select', options: ['any', 'forward', 'backward', 'left', 'right', 'diagonal'] },
         { name: 'distance', type: 'select', options: ['any', '1', '2', '3', 'any_capture'] }
-      ],
-      capture: [
-        { name: 'target', type: 'select', options: ['any', 'pawn', 'knight', 'bishop', 'rook', 'queen', 'king', 'any_valuable'] },
-        { name: 'safe', type: 'checkbox', label: 'Only if safe' }
-      ],
-      promote: [
-        { name: 'to', type: 'select', options: ['queen', 'rook', 'bishop', 'knight'] }
-      ],
-      castle: [
-        { name: 'side', type: 'select', options: ['any', 'kingside', 'queenside'] }
       ]
     };
 
@@ -338,8 +328,12 @@ class NodeEditor {
   }
 
   getCsrfToken() {
-    return document.querySelector('meta[name="csrf-token"]')?.content 
+    const token = document.querySelector('meta[name="csrf-token"]')?.content 
         || document.querySelector('[name="csrf-token"]')?.content;
+    if (!token) {
+      throw new Error('CSRF token not found');
+    }
+    return token;
   }
   
   createConnection(sourceId, targetId) {
@@ -470,11 +464,6 @@ class NodeEditor {
     });
   }
 
-  getCsrfToken() {
-    return document.querySelector('meta[name="csrf-token"]')?.content 
-        || document.querySelector('[name="csrf-token"]')?.content;
-  }
-
   renderNode(node) {
     const nodeEl = document.createElement('div');
     nodeEl.className = `node ${node.node_type}`;
@@ -591,7 +580,7 @@ class NodeEditor {
     if (nodeData && nodeData.node_type) {
       finishOpen(nodeData);
     } else {
-      fetch(`/bots/${this.botId}/nodes/${nodeId}`, {
+      fetch(`/bots/${this.botId}/nodes/${nodeId}/edit`, {
         headers: {
           'X-CSRF-Token': document.querySelector('[name="csrf-token"]')?.content
         }
@@ -743,52 +732,6 @@ class NodeEditor {
     }).join('');
   }
 
-  renderFields(nodeType, typeKey, existingData = {}) {
-    const fieldsDiv = document.getElementById('edit-node-fields');
-    const fields = nodeType === 'condition' ? this.conditionFields[typeKey] : this.actionFields[typeKey];
-    
-    if (!fields) {
-      fieldsDiv.innerHTML = '<p>No options for this type</p>';
-      return;
-    }
-    
-    fieldsDiv.innerHTML = fields.map(field => {
-      const value = existingData[field.name] ?? field.default ?? '';
-      
-      switch (field.type) {
-        case 'select':
-          return `
-            <div class="form-group">
-              <label>${field.label || field.name.replace(/_/g, ' ')}</label>
-              <select name="${field.name}">
-                ${field.options.map(opt => 
-                  `<option value="${opt}" ${opt === value ? 'selected' : ''}>${opt}</option>`
-                ).join('')}
-              </select>
-            </div>
-          `;
-        case 'checkbox':
-          return `
-            <div class="form-group checkbox">
-              <label>
-                <input type="checkbox" name="${field.name}" ${value ? 'checked' : ''}>
-                ${field.label}
-              </label>
-            </div>
-          `;
-        case 'number':
-          return `
-            <div class="form-group">
-              <label>${field.label || field.name.replace(/_/g, ' ')}</label>
-              <input type="number" name="${field.name}" value="${value}">
-            </div>
-          `;
-        default:
-          return '';
-      }
-    }).join('');
-  }
-
   saveNode() {
     if (!this.botId || !this.editingNodeId) return;
     
@@ -860,68 +803,20 @@ class NodeEditor {
     .then(node => {
       const nodeEl = this.nodes.get(node.id)?.element;
       if (nodeEl) {
-        this.updateNodePreview(nodeEl, node);
+        fetch(`/bots/${this.botId}/nodes/${node.id}`, {
+          headers: {
+            'Accept': 'text/html',
+            'X-CSRF-Token': document.querySelector('[name="csrf-token"]')?.content
+          }
+        })
+        .then(res => res.text())
+        .then(html => {
+          nodeEl.querySelector('.node-content').innerHTML = html;
+        });
       }
       this.closeEditor();
     })
     .catch(err => console.error('Failed to save node:', err));
-  }
-
-  updateNodePreview(nodeEl, node) {
-    const data = node.data || {};
-    let previewHtml = '';
-    
-    if (node.node_type === 'condition') {
-      const context = data.context || 'self';
-      const query = data.query || '?';
-      
-      let pieceInfo = '';
-      if (data.piece_filter_type === 'specific') {
-        pieceInfo = `(${data.piece_type || 'any'})`;
-      } else if (data.piece_filter_type === 'negative') {
-        pieceInfo = `(not ${data.piece_negative_type || 'pawn'})`;
-      } else if (data.piece_filter_type === 'value') {
-        pieceInfo = `(val ${data.piece_value_op}${data.piece_value_num})`;
-      }
-      
-      let details = '';
-      if (query === 'is_attacked' && data.attacker_filter_type) {
-        if (data.attacker_filter_type === 'specific') {
-          details = ` by ${data.attacker_type}`;
-        } else if (data.attacker_filter_type === 'value') {
-          details = ` by val ${data.attacker_value_op}${data.attacker_value_num}`;
-        }
-      } else if (query === 'is_attacking' && data.attacked_filter_type) {
-        if (data.attacked_filter_type === 'specific') {
-          details = ` -> ${data.attacked_type}`;
-        } else if (data.attacked_filter_type === 'value') {
-          details = ` -> val ${data.attacked_value_op}${data.attacked_value_num}`;
-        }
-      } else if (query === 'position') {
-        if (data.position_type === 'file') {
-          details = ` ${data.position_file}`;
-        } else {
-          details = ` ${data.position_op}${data.position_num}`;
-        }
-      }
-      
-      previewHtml = `<div class="node-preview">${context} ${pieceInfo}: ${query}${details}</div>`;
-    } else if (node.node_type === 'action') {
-      const actionType = data.action_type || 'move';
-      if (actionType === 'move') {
-        previewHtml = `<div class="node-preview">${data.direction || 'Any'}</div>`;
-      } else if (actionType === 'capture') {
-        previewHtml = `<div class="node-preview">${data.target || 'Any'}</div>`;
-      } else if (actionType === 'promote') {
-        previewHtml = `<div class="node-preview">→ ${data.to || 'Q'}</div>`;
-      } else if (actionType === 'castle') {
-        previewHtml = `<div class="node-preview">${data.side || 'Any'}</div>`;
-      } else {
-        previewHtml = `<div class="node-preview">${actionType}</div>`;
-      }
-    }
-    
-    nodeEl.querySelector('.node-content').innerHTML = previewHtml;
   }
 
   closeEditor() {
