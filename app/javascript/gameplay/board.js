@@ -137,6 +137,7 @@ class Board {
   }
 
   static parseTeam(string){
+    // console.log("string from inside parseTeam is " + string)
     return string[0]
   }
 
@@ -196,37 +197,24 @@ class Board {
     return values;
   }
 
-  consoleLogBlackPov(){
-    for( let i = 0; i < 64; i = i + 8 ){
-      let row = ""
-      for( let j = 0; j < 8; j++){
-        let pieceObject = this.pieceObject(i + j)
-        if( Board.parseTeam(pieceObject) === Board.EMPTY ){
-          var text = "  __  "
+  printBoardToConsole(perspective = 'white') {
+    const start = perspective === 'white' ? 56 : 0;
+    const end = perspective === 'white' ? -1 : 64;
+    const step = perspective === 'white' ? -8 : 8;
+    
+    for (let i = start; i !== end; i += step) {
+      let row = '';
+      for (let j = 0; j < 8; j++) {
+        const pieceObject = this.pieceObject(i + j);
+        let text;
+        if (Board.parseTeam(pieceObject) === Board.EMPTY) {
+          text = '  __  ';
         } else {
-          var text = "  " + Board.parseTeam(pieceObject)[0] + Board.parseSpecies( pieceObject )[0] + "  "
+          text = '  ' + Board.parseTeam(pieceObject)[0] + Board.parseSpecies(pieceObject)[0] + '  ';
         }
-        row = row + text
+        row += text;
       }
-      console.log(row)
-      console.log(" ")
-    }
-  }
-
-  consoleLogWhitePov(){
-    for( let i = 56; i > -1; i = i - 8 ){
-      let row = ""
-      for( let j = 0; j < 8; j++){
-        let pieceObject = this.pieceObject(i + j)
-        if( Board.parseTeam(pieceObject) === Board.EMPTY ){
-          var text = "  __  "
-        } else {
-          var text = "  " + Board.parseTeam(pieceObject)[0] + Board.parseSpecies( pieceObject )[0] + "  "
-        }
-        row = row + text
-      }
-      console.log(row)
-      console.log(" ")
+      console.log(row);
     }
   }
 
@@ -378,7 +366,6 @@ class Board {
       additionalActions = moveObject.additionalActions,
       pieceObject = this.pieceObject(startPosition),
       stringyLayOut = JSON.stringify(this.layOut);
-
     this._recordLayout(stringyLayOut)
     this._emptify(startPosition)
     if( !this.positionEmpty(endPosition) ){ this._capture(endPosition); }
@@ -467,6 +454,7 @@ class Board {
   }
 
   _oneSpaceUpIsEmpty(position){
+    if( position > 54 && Board.parseTeam(this.layOut[position]) == "W" ){debugger}
     return this.positionEmpty( position + 8)
   }
 
