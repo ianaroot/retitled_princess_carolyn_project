@@ -379,7 +379,6 @@ class Board {
       additionalActions = moveObject.additionalActions,
       pieceObject = this.pieceObject(startPosition),
       stringyLayOut = JSON.stringify(this.layOut);
-
     this._recordLayout(stringyLayOut)
     this._emptify(startPosition)
     if( !this.positionEmpty(endPosition) ){ this._capture(endPosition); }
@@ -468,6 +467,7 @@ class Board {
   }
 
   _oneSpaceUpIsEmpty(position){
+    if( position > 54 && Board.parseTeam(this.layOut[position]) == "W" ){debugger}
     return this.positionEmpty( position + 8)
   }
 

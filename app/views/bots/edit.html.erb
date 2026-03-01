@@ -1,0 +1,43 @@
+<h1>Editing Bot: <%= @bot.name %></h1>
+
+<div class="bot-editor">
+  <div class="editor-toolbar">
+    <div class="toolbar-section">
+      <h3>Add Node</h3>
+      <button class="btn-add-node" data-type="condition">+ Condition</button>
+      <button class="btn-add-node" data-type="action">+ Action</button>
+    </div>
+    
+    <div class="toolbar-section">
+      <h3>Tool</h3>
+      <button class="tool-select active" data-tool="select">Select</button>
+      <button class="tool-delete" data-tool="delete">Delete</button>
+    </div>
+
+    <div class="toolbar-section">
+      <%= link_to 'Back to Bots', bots_path, class: 'btn-back' %>
+      <%= link_to 'Play Test Game', new_game_path, class: 'btn-test' %>
+    </div>
+  </div>
+
+  <div class="editor-main">
+    <div class="canvas-container">
+    <svg id="connections-canvas" class="connections-layer" data-connections="<%= (@connections || []).map { |c| { id: c.id, source: c.source_node_id, target: c.target_node_id } }.to_json %>"></svg>
+    <div id="nodes-canvas" class="nodes-layer" data-bot-id="<%= @bot.id %>">
+      <% (@nodes || @bot.nodes).each do |node| %>
+        <div class="node <%= node.node_type %>" 
+             data-id="<%= node.id %>"
+             data-type="<%= node.node_type %>"
+             style="left: <%= node.position_x %>px; top: <%= node.position_y %>px;">
+          <div class="node-content">
+            <%= render "bots/nodes/preview", node: node %>
+          </div>
+          <div class="node-connector input"></div>
+          <div class="node-connector output"></div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%= render "bots/nodes/editor" %>
+</div>

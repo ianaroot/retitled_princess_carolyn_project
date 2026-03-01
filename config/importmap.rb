@@ -7,3 +7,4 @@ pin "@hotwired/stimulus-loading", to: "stimulus-loading.js"
 pin_all_from "app/javascript/controllers", under: "controllers"
 
 pin_all_from 'app/javascript/gameplay', under: 'gameplay', to: 'gameplay'
+pin_all_from 'app/javascript/gameplay/editor', under: 'gameplay/editor', to: 'gameplay/editor'

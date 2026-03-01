@@ -13,16 +13,16 @@ class Bot {
       weightMoves = this.gamePhasePriorities[gamePhase],
       weightedMoves = weightMoves({moves: availableMoves, board: board, team: this.homeTeam});
 
-    console.log("gamePhase")
-    console.log(gamePhase)
-    console.log("weightedMoves")
-    console.log(weightedMoves)
+    // console.log("gamePhase")
+    // console.log(gamePhase)
+    // console.log("weightedMoves")
+    // console.log(weightedMoves)
 
     // opening never looks to capture. not sure if the others do either
     let moveIdeas = this.pickNweightiestMovesFrom(weightedMoves, 8),
         move = moveIdeas[Math.floor(Math.random()*moveIdeas.length)];
-    console.log("MOVE IDEAS")
-    console.log(moveIdeas)
+    // console.log("MOVE IDEAS")
+    // console.log(moveIdeas)
     return move
 
   }
@@ -48,10 +48,10 @@ class Bot {
 
   calculateGamePhase({team: team, board: board}){
     let kingPosition = board.kingPosition(team);
-    console.log("backrank black")
-    console.log(this.backRankHasMinorPieces({team: team, board: board}))
-    console.log("white")
-    console.log(this.backRankHasMinorPieces({team: Board.WHITE, board: board}))
+    // console.log("backrank black")
+    // console.log(this.backRankHasMinorPieces({team: team, board: board}))
+    // console.log("white")
+    // console.log(this.backRankHasMinorPieces({team: Board.WHITE, board: board}))
     if ( board.remainingPieceValueFor( Board.opposingTeam(team) ) <= 13 ) {
       return "end";
     } else if ( !this.backRankHasMinorPieces({team: team, board: board})) {
@@ -131,7 +131,7 @@ class Bot {
         weightedMoves[weight] = [moves[i]]
       }
     }
-    console.log(weightedMoves)
+    // console.log(weightedMoves)
     return weightedMoves
   }
 

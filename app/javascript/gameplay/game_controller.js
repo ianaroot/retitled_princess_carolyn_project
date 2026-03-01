@@ -56,8 +56,8 @@ class GameController {
 				sound = alerts_and_sounds.sound
 			}
 		}
-		console.log('sound')
-		console.log(sound)
+		// console.log('sound')
+		// console.log(sound)
 
 		this.view.displayLayOut({board: board, alert: alert, startPosition: startPosition})
 		Sound.playSound(sound)
