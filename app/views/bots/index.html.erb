@@ -1,4 +1,4 @@
-<h1>My Bots</h1>
+<h1>Bots</h1>
 
 <table>
   <thead>
@@ -17,7 +17,7 @@
         <td><%= bot.created_at.strftime("%Y-%m-%d") %></td>
         <td>
           <%= link_to 'Edit', edit_bot_path(bot) %>
-          <%= link_to 'Delete', bot, method: :delete, data: { confirm: 'Are you sure?' } %>
+          <%= link_to 'Delete', bot, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' } %>
         </td>
       </tr>
     <% end %>
