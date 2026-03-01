@@ -27,7 +27,6 @@ class MovesCalculator {
     // } else {
       let pieceSpecificMovements = MovesCalculator.pieceSpecificMovements(this.pieceType)// , (this.endPosition - this.startPosition ) ); //TODO maybe shouldn't rely on Nan below when endPosition is undefined
           // the difference between the two refs to pieceSpecificMovements in these couple lines is very unclear
-      console.log(this.board.layOut)
       this.movementTypes = pieceSpecificMovements({startPosition: this.startPosition, board: this.board, ignoreCastles: this.ignoreCastles})
     // }
   }
