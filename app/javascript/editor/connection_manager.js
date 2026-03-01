@@ -1,0 +1,227 @@
+class ConnectionManager {
+  constructor(api, nodesMap) {
+    this.api = api;
+    this.nodes = nodesMap;
+    this.connectionsCanvas = document.getElementById('connections-canvas');
+    this.nodesCanvas = document.getElementById('nodes-canvas');
+    
+    this.isConnecting = false;
+    this.connectSource = null;
+    this.tempLine = null;
+  }
+
+  loadConnections() {
+    this.nodes.forEach((node, id) => {
+      const output = node.element.querySelector('.output');
+      if (output) {
+        output.addEventListener('mousedown', (e) => this.startConnection(e, id));
+      }
+    });
+  }
+
+  drawExistingConnections() {
+    const connectionsData = this.connectionsCanvas?.dataset.connections;
+    if (!connectionsData) return;
+    
+    try {
+      const connections = JSON.parse(connectionsData);
+      connections.forEach(conn => {
+        if (this.nodes.has(conn.source) && this.nodes.has(conn.target)) {
+          this.drawConnection(conn.source, conn.target, conn.id);
+        }
+      });
+    } catch (e) {
+      console.error('Failed to parse connections:', e);
+    }
+  }
+
+  startConnection(e, nodeId) {
+    this.isConnecting = true;
+    this.connectSource = { nodeId };
+    e.stopPropagation();
+    e.preventDefault();
+    
+    this.createTempLine(e.clientX, e.clientY);
+  }
+
+  createTempLine(x, y) {
+    this.tempLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    const sourceNode = this.nodes.get(this.connectSource.nodeId);
+    const sourceEl = sourceNode.element;
+    const nodesCanvasRect = this.nodesCanvas.getBoundingClientRect();
+    
+    const startX = parseFloat(sourceEl.style.left) + 100;
+    const startY = parseFloat(sourceEl.style.top) + 30;
+    
+    this.tempLine.setAttribute('x1', startX);
+    this.tempLine.setAttribute('y1', startY);
+    this.tempLine.setAttribute('x2', x - nodesCanvasRect.left);
+    this.tempLine.setAttribute('y2', y - nodesCanvasRect.top);
+    this.tempLine.setAttribute('stroke', '#4CAF50');
+    this.tempLine.setAttribute('stroke-width', '3');
+    this.tempLine.setAttribute('stroke-dasharray', '5,5');
+    
+    this.connectionsCanvas.appendChild(this.tempLine);
+  }
+
+  updateConnectionLine(x, y) {
+    if (!this.tempLine) return;
+    
+    const nodesCanvasRect = this.nodesCanvas.getBoundingClientRect();
+    this.tempLine.setAttribute('x2', x - nodesCanvasRect.left);
+    this.tempLine.setAttribute('y2', y - nodesCanvasRect.top);
+  }
+
+  endConnection() {
+    if (this.tempLine) {
+      this.tempLine.remove();
+      this.tempLine = null;
+    }
+    this.isConnecting = false;
+    this.connectSource = null;
+  }
+
+  createConnection(sourceId, targetId) {
+    if (!this.api.botId) return;
+    
+    this.api.createConnection(sourceId, targetId)
+    .then(conn => {
+      this.drawConnection(sourceId, targetId, conn.id);
+    })
+    .catch(err => console.error('Connection failed:', err));
+  }
+
+  drawConnection(sourceId, targetId, connectionId) {
+    const sourceNode = this.nodes.get(sourceId);
+    const targetNode = this.nodes.get(targetId);
+    
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    const startX = parseFloat(sourceNode.element.style.left) + 100;
+    const startY = parseFloat(sourceNode.element.style.top) + 30;
+    const endX = parseFloat(targetNode.element.style.left);
+    const endY = parseFloat(targetNode.element.style.top) + 30;
+    
+    const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    hitArea.setAttribute('x1', startX);
+    hitArea.setAttribute('y1', startY);
+    hitArea.setAttribute('x2', endX);
+    hitArea.setAttribute('y2', endY);
+    hitArea.setAttribute('stroke', 'transparent');
+    hitArea.setAttribute('stroke-width', '20');
+    hitArea.style.pointerEvents = 'stroke';
+    hitArea.dataset.sourceId = sourceId;
+    hitArea.dataset.targetId = targetId;
+    hitArea.dataset.connectionId = connectionId;
+    
+    line.setAttribute('x1', startX);
+    line.setAttribute('y1', startY);
+    line.setAttribute('x2', endX);
+    line.setAttribute('y2', endY);
+    line.setAttribute('stroke', '#4CAF50');
+    line.setAttribute('stroke-width', '2');
+    line.style.pointerEvents = 'none';
+    line.dataset.sourceId = sourceId;
+    line.dataset.targetId = targetId;
+    line.dataset.connectionId = connectionId;
+    
+    const midX = (startX + endX) / 2;
+    const midY = (startY + endY) / 2;
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'connection-delete-btn';
+    deleteBtn.textContent = '×';
+    deleteBtn.style.left = `${midX}px`;
+    deleteBtn.style.top = `${midY}px`;
+    deleteBtn.dataset.sourceId = sourceId;
+    deleteBtn.dataset.targetId = targetId;
+    deleteBtn.dataset.connectionId = connectionId;
+    
+    hitArea.addEventListener('mouseenter', (e) => {
+      if (!this.nodes.has(sourceId) || !this.nodes.has(targetId)) return;
+      const sourceEl = this.nodes.get(sourceId).element;
+      const targetEl = this.nodes.get(targetId).element;
+      if (sourceEl.matches(':hover') || targetEl.matches(':hover')) return;
+      deleteBtn.style.display = 'block';
+    });
+    
+    hitArea.addEventListener('mouseleave', () => {
+      deleteBtn.style.display = 'none';
+    });
+    
+    deleteBtn.addEventListener('mouseenter', () => {
+      deleteBtn.style.display = 'block';
+    });
+    
+    deleteBtn.addEventListener('mouseleave', () => {
+      deleteBtn.style.display = 'none';
+    });
+    
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.disconnectNode(sourceId, targetId);
+    });
+    
+    this.connectionsCanvas.appendChild(hitArea);
+    this.connectionsCanvas.appendChild(line);
+    this.nodesCanvas.appendChild(deleteBtn);
+  }
+
+  updateConnections() {
+    this.connectionsCanvas.querySelectorAll('line:not([stroke="transparent"])').forEach(line => {
+      const sourceId = parseInt(line.dataset.sourceId);
+      const targetId = parseInt(line.dataset.targetId);
+      
+      const sourceNode = this.nodes.get(sourceId);
+      const targetNode = this.nodes.get(targetId);
+      
+      if (!sourceNode || !targetNode) return;
+      
+      const startX = parseFloat(sourceNode.element.style.left) + 100;
+      const startY = parseFloat(sourceNode.element.style.top) + 30;
+      const endX = parseFloat(targetNode.element.style.left);
+      const endY = parseFloat(targetNode.element.style.top) + 30;
+      
+      line.setAttribute('x1', startX);
+      line.setAttribute('y1', startY);
+      line.setAttribute('x2', endX);
+      line.setAttribute('y2', endY);
+      
+      // Update hit area (transparent line)
+      const hitArea = this.connectionsCanvas.querySelector(`line[stroke="transparent"][data-source-id="${sourceId}"][data-target-id="${targetId}"]`);
+      if (hitArea) {
+        hitArea.setAttribute('x1', startX);
+        hitArea.setAttribute('y1', startY);
+        hitArea.setAttribute('x2', endX);
+        hitArea.setAttribute('y2', endY);
+      }
+      
+      const midX = (startX + endX) / 2;
+      const midY = (startY + endY) / 2;
+      
+      const deleteBtn = document.querySelector(`.connection-delete-btn[data-source-id="${sourceId}"][data-target-id="${targetId}"]`);
+      if (deleteBtn) {
+        deleteBtn.style.left = `${midX}px`;
+        deleteBtn.style.top = `${midY}px`;
+      }
+    });
+  }
+
+  disconnectNode(sourceId, targetId) {
+    if (!this.api.botId) return;
+    
+    const line = document.querySelector(`line[data-source-id="${sourceId}"][data-target-id="${targetId}"]`);
+    const connectionId = line?.dataset.connectionId;
+    if (!connectionId) return;
+    
+    this.api.deleteConnection(sourceId, connectionId)
+    .then(() => {
+      document.querySelectorAll(
+        `line[data-source-id="${sourceId}"][data-target-id="${targetId}"], ` +
+        `.connection-delete-btn[data-source-id="${sourceId}"][data-target-id="${targetId}"]`
+      ).forEach(el => el.remove());
+    })
+    .catch(err => console.error('Failed to disconnect:', err));
+  }
+}
+
+export default ConnectionManager;
