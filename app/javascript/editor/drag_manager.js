@@ -1,9 +1,10 @@
 class DragManager {
-  constructor(nodesMap, nodesCanvas, api, connectionManager) {
+  constructor(nodesMap, nodesCanvas, api, connectionManager, nodeEditor) {
     this.nodes = nodesMap;
     this.nodesCanvas = nodesCanvas;
     this.api = api;
     this.connectionManager = connectionManager;
+    this.nodeEditor = nodeEditor;
     
     this.selectedNode = null;
     this.isDragging = false;
@@ -32,10 +33,20 @@ class DragManager {
     this.positionChanged = false;
     
     const rect = nodeEl.getBoundingClientRect();
-    this.dragOffset = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    };
+    
+    // Calculate offset in canvas coordinates (accounting for zoom)
+    if (this.nodeEditor) {
+      const canvasCoords = this.nodeEditor.screenToCanvas(e.clientX, e.clientY);
+      this.dragOffset = {
+        x: canvasCoords.x - parseFloat(nodeEl.style.left),
+        y: canvasCoords.y - parseFloat(nodeEl.style.top)
+      };
+    } else {
+      this.dragOffset = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+    }
     
     if (this.onDragStart) {
       this.onDragStart(nodeId);
@@ -50,10 +61,17 @@ class DragManager {
     if (!this.isDragging || !this.selectedNode) return;
     
     const node = this.nodes.get(this.selectedNode);
-    const canvasRect = this.nodesCanvas.getBoundingClientRect();
     
-    node.position.x = e.clientX - canvasRect.left - this.dragOffset.x;
-    node.position.y = e.clientY - canvasRect.top - this.dragOffset.y;
+    // Convert screen coordinates to canvas coordinates
+    if (this.nodeEditor) {
+      const canvasCoords = this.nodeEditor.screenToCanvas(e.clientX, e.clientY);
+      node.position.x = canvasCoords.x - this.dragOffset.x;
+      node.position.y = canvasCoords.y - this.dragOffset.y;
+    } else {
+      const canvasRect = this.nodesCanvas.getBoundingClientRect();
+      node.position.x = e.clientX - canvasRect.left - this.dragOffset.x;
+      node.position.y = e.clientY - canvasRect.top - this.dragOffset.y;
+    }
     
     node.element.style.left = `${node.position.x}px`;
     node.element.style.top = `${node.position.y}px`;

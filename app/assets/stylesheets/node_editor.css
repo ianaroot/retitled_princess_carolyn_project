@@ -59,6 +59,39 @@
   text-decoration: none;
 }
 
+/* Zoom controls */
+.btn-zoom {
+  background: #0f3460;
+  color: white;
+  width: 30px;
+  padding: 6px;
+  font-weight: bold;
+}
+
+.btn-zoom:hover {
+  background: #1a4a7a;
+}
+
+.btn-zoom-reset {
+  background: #1a1a2e;
+  color: #aaa;
+  font-size: 11px;
+  padding: 6px 10px;
+}
+
+.btn-zoom-reset:hover {
+  background: #0f3460;
+  color: white;
+}
+
+#zoom-level {
+  display: inline-block;
+  min-width: 45px;
+  text-align: center;
+  font-size: 13px;
+  color: #eee;
+}
+
 .editor-main {
   display: flex;
   flex: 1;

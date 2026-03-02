@@ -15,6 +15,14 @@
     </div>
 
     <div class="toolbar-section">
+      <h3>View</h3>
+      <button id="zoom-out" class="btn-zoom">-</button>
+      <span id="zoom-level">100%</span>
+      <button id="zoom-in" class="btn-zoom">+</button>
+      <button id="zoom-reset" class="btn-zoom-reset">Reset</button>
+    </div>
+
+    <div class="toolbar-section">
       <%= link_to 'Back to Bots', bots_path, class: 'btn-back' %>
       <%= link_to 'Play Test Game', new_game_path, class: 'btn-test' %>
     </div>

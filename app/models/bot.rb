@@ -15,8 +15,8 @@ class Bot < ApplicationRecord
   belongs_to :user
   has_many :games
   has_many :nodes, dependent: :destroy
-  has_many :node_connections, through: :nodes
+  has_many :node_connections, through: :nodes, source: :outgoing_connections
 
-  validates :name, presence: true
+  validates :name, presence: true, uniqueness: true
 
 end

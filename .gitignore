@@ -34,5 +34,8 @@
 # Ignore master key for decrypting credentials and more.
 /config/master.key
 
+# local communication with ai for context window persistence
+/AGENTS.md
+
 
 .DS_Store
