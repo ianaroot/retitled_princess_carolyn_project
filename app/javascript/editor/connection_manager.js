@@ -1,7 +1,13 @@
+// Node dimension constants
+const NODE_WIDTH = 100;
+const NODE_HEIGHT = 60;
+const CONNECTOR_OFFSET_Y = 30; // Half of node height to center on output connector
+
 class ConnectionManager {
-  constructor(api, nodesMap) {
+  constructor(api, nodesMap, nodeEditor) {
     this.api = api;
     this.nodes = nodesMap;
+    this.nodeEditor = nodeEditor;
     this.connectionsCanvas = document.getElementById('connections-canvas');
     this.nodesCanvas = document.getElementById('nodes-canvas');
     
@@ -60,15 +66,19 @@ class ConnectionManager {
     this.tempLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     const sourceNode = this.nodes.get(this.connectSource.nodeId);
     const sourceEl = sourceNode.element;
-    const nodesCanvasRect = this.nodesCanvas.getBoundingClientRect();
     
-    const startX = parseFloat(sourceEl.style.left) + 100;
-    const startY = parseFloat(sourceEl.style.top) + 30;
+    const startX = parseFloat(sourceEl.style.left) + NODE_WIDTH;
+    const startY = parseFloat(sourceEl.style.top) + CONNECTOR_OFFSET_Y;
+    
+    // Convert screen coordinates to canvas coordinates for proper positioning
+    const canvasCoords = this.nodeEditor ? 
+      this.nodeEditor.screenToCanvas(x, y) : 
+      { x: x - this.nodesCanvas.getBoundingClientRect().left, y: y - this.nodesCanvas.getBoundingClientRect().top };
     
     this.tempLine.setAttribute('x1', startX);
     this.tempLine.setAttribute('y1', startY);
-    this.tempLine.setAttribute('x2', x - nodesCanvasRect.left);
-    this.tempLine.setAttribute('y2', y - nodesCanvasRect.top);
+    this.tempLine.setAttribute('x2', canvasCoords.x);
+    this.tempLine.setAttribute('y2', canvasCoords.y);
     this.tempLine.setAttribute('stroke', '#4CAF50');
     this.tempLine.setAttribute('stroke-width', '3');
     this.tempLine.setAttribute('stroke-dasharray', '5,5');
@@ -102,9 +112,13 @@ class ConnectionManager {
   updateConnectionLine(x, y) {
     if (!this.tempLine) return;
     
-    const nodesCanvasRect = this.nodesCanvas.getBoundingClientRect();
-    this.tempLine.setAttribute('x2', x - nodesCanvasRect.left);
-    this.tempLine.setAttribute('y2', y - nodesCanvasRect.top);
+    // Convert screen coordinates to canvas coordinates for proper positioning
+    const canvasCoords = this.nodeEditor ? 
+      this.nodeEditor.screenToCanvas(x, y) : 
+      { x: x - this.nodesCanvas.getBoundingClientRect().left, y: y - this.nodesCanvas.getBoundingClientRect().top };
+    
+    this.tempLine.setAttribute('x2', canvasCoords.x);
+    this.tempLine.setAttribute('y2', canvasCoords.y);
   }
 
   endConnection() {
@@ -135,10 +149,10 @@ class ConnectionManager {
     const targetNode = this.nodes.get(targetId);
     
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    const startX = parseFloat(sourceNode.element.style.left) + 100;
-    const startY = parseFloat(sourceNode.element.style.top) + 30;
+    const startX = parseFloat(sourceNode.element.style.left) + NODE_WIDTH;
+    const startY = parseFloat(sourceNode.element.style.top) + CONNECTOR_OFFSET_Y;
     const endX = parseFloat(targetNode.element.style.left);
-    const endY = parseFloat(targetNode.element.style.top) + 30;
+    const endY = parseFloat(targetNode.element.style.top) + CONNECTOR_OFFSET_Y;
     
     const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     hitArea.setAttribute('x1', startX);
@@ -215,10 +229,10 @@ class ConnectionManager {
       
       if (!sourceNode || !targetNode) return;
       
-      const startX = parseFloat(sourceNode.element.style.left) + 100;
-      const startY = parseFloat(sourceNode.element.style.top) + 30;
+      const startX = parseFloat(sourceNode.element.style.left) + NODE_WIDTH;
+      const startY = parseFloat(sourceNode.element.style.top) + CONNECTOR_OFFSET_Y;
       const endX = parseFloat(targetNode.element.style.left);
-      const endY = parseFloat(targetNode.element.style.top) + 30;
+      const endY = parseFloat(targetNode.element.style.top) + CONNECTOR_OFFSET_Y;
       
       line.setAttribute('x1', startX);
       line.setAttribute('y1', startY);

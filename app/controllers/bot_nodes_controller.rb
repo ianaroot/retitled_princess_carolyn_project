@@ -65,8 +65,10 @@ class BotNodesController < ApplicationController
     connection = NodeConnection.find(params[:id])
     if connection.source_node.bot_id == @bot.id || connection.target_node.bot_id == @bot.id
       connection.destroy
+      head :no_content
+    else
+      head :forbidden
     end
-    head :no_content
   end
 
   private

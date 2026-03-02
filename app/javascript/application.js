@@ -23,10 +23,11 @@ document.addEventListener('turbo:load', () => {
     if (document.getElementById('chess-board')) {
       var gameController = new GameController()
       
-      // Expose globally for debugging in the console
-      // TODO: Circle back to ensure exposing these globally doesn't introduce 
-      // security or gameplay vulnerabilities in production.
-      window.gameController = gameController;
-      window.api = gameController.api;
+      // Expose globally for debugging in development only
+      // Only exposed in development to limit security concerns in production
+      if (document.body.dataset.environment === 'development') {
+        window.gameController = gameController;
+        window.api = gameController.api;
+      }
     }
   });
