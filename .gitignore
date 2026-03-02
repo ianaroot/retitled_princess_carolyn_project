@@ -35,6 +35,7 @@
 /config/master.key
 
 # local communication with ai for context window persistence
+/.cursorrules
 /AGENTS.md
 
 

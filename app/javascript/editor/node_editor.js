@@ -14,6 +14,14 @@ const ZOOM_MAX = 2.0;
 const ZOOM_STEP = 0.1;
 const ZOOM_DEFAULT = 1.0;
 
+// Base canvas dimensions (actual working area at 100% zoom)
+const BASE_CANVAS_WIDTH = 3000;
+const BASE_CANVAS_HEIGHT = 2000;
+
+// Minimum visible canvas size (at max zoom)
+const MIN_CANVAS_WIDTH = 1500;
+const MIN_CANVAS_HEIGHT = 1000;
+
 class NodeEditor {
   constructor(canvasId) {
     this.canvas = document.getElementById(canvasId);
@@ -111,10 +119,30 @@ class NodeEditor {
   }
 
   applyZoom() {
-    // Apply transform to the canvas container
-    if (this.canvasContainer) {
-      this.canvasContainer.style.transform = `scale(${this.zoomLevel})`;
-      this.canvasContainer.style.transformOrigin = 'top left';
+    // Calculate canvas dimensions inversely proportional to zoom
+    // At 50% zoom: 2x the dimensions (showing 4x more workspace)
+    // At 200% zoom: half the dimensions (focusing on area)
+    const scaleFactor = ZOOM_DEFAULT / this.zoomLevel;
+    const canvasWidth = Math.max(MIN_CANVAS_WIDTH, BASE_CANVAS_WIDTH * scaleFactor);
+    const canvasHeight = Math.max(MIN_CANVAS_HEIGHT, BASE_CANVAS_HEIGHT * scaleFactor);
+    
+    // Resize the canvas layers to provide more working space
+    if (this.nodesCanvas) {
+      this.nodesCanvas.style.width = `${canvasWidth}px`;
+      this.nodesCanvas.style.height = `${canvasHeight}px`;
+      // Scale the content inside (makes nodes smaller when zoomed out)
+      this.nodesCanvas.style.transform = `scale(${this.zoomLevel})`;
+      this.nodesCanvas.style.transformOrigin = 'top left';
+    }
+    
+    if (this.connectionsCanvas) {
+      this.connectionsCanvas.style.width = `${canvasWidth}px`;
+      this.connectionsCanvas.style.height = `${canvasHeight}px`;
+      this.connectionsCanvas.setAttribute('width', canvasWidth);
+      this.connectionsCanvas.setAttribute('height', canvasHeight);
+      // Scale the SVG content
+      this.connectionsCanvas.style.transform = `scale(${this.zoomLevel})`;
+      this.connectionsCanvas.style.transformOrigin = 'top left';
     }
     
     // Update zoom display
