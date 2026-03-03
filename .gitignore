@@ -35,7 +35,11 @@
 /config/master.key
 
 # local communication with ai for context window persistence
+/.cursorrules
 /AGENTS.md
+
+# spec results
+/node_modules/.vite/vitest/results.json
 
 
 .DS_Store

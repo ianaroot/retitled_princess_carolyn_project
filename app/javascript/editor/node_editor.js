@@ -2,17 +2,12 @@ import EditorApi from "editor/api";
 import NodeFormHandler from "editor/form_handler";
 import ConnectionManager from "editor/connection_manager";
 import DragManager from "editor/drag_manager";
+import ZoomManager from "editor/zoom_manager";
 
 // Positioning constants
 const MIN_NODE_DISTANCE = 120;
 const INITIAL_POSITION_RANGE = 200;
 const MAX_PLACEMENT_ATTEMPTS = 50;
-
-// Zoom constants
-const ZOOM_MIN = 0.5;
-const ZOOM_MAX = 2.0;
-const ZOOM_STEP = 0.1;
-const ZOOM_DEFAULT = 1.0;
 
 class NodeEditor {
   constructor(canvasId) {
@@ -26,11 +21,13 @@ class NodeEditor {
 
     this.nodes = new Map();
     this.currentTool = 'select';
-    this.zoomLevel = ZOOM_DEFAULT;
+    
+    // Initialize zoom manager
+    this.zoomManager = new ZoomManager(this.nodesCanvas, this.connectionsCanvas, this.canvasContainer);
     
     this.formHandler = new NodeFormHandler(this.api, this.nodes);
-    this.connectionManager = new ConnectionManager(this.api, this.nodes, this);
-    this.dragManager = new DragManager(this.nodes, this.nodesCanvas, this.api, this.connectionManager, this);
+    this.connectionManager = new ConnectionManager(this.api, this.nodes, this.zoomManager.screenToCanvas.bind(this.zoomManager));
+    this.dragManager = new DragManager(this.nodes, this.nodesCanvas, this.api, this.connectionManager, this.zoomManager.screenToCanvas.bind(this.zoomManager));
     
     // Store bound handlers for cleanup
     this.boundHandleMouseDown = this.handleMouseDown.bind(this);
@@ -49,6 +46,8 @@ class NodeEditor {
   init() {
     this.loadNodes();
     this.setupEventListeners();
+    // Center the view on loaded nodes after a brief delay to ensure DOM is ready
+    setTimeout(() => this.zoomManager.centerViewOnNodes(this.nodes), 100);
   }
 
   loadNodes() {
@@ -79,67 +78,9 @@ class NodeEditor {
       });
     });
 
-    // Zoom controls
-    const zoomInBtn = document.getElementById('zoom-in');
-    const zoomOutBtn = document.getElementById('zoom-out');
-    const zoomResetBtn = document.getElementById('zoom-reset');
-    
-    if (zoomInBtn) zoomInBtn.addEventListener('click', () => this.zoomIn());
-    if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => this.zoomOut());
-    if (zoomResetBtn) zoomResetBtn.addEventListener('click', () => this.zoomReset());
+    // Zoom controls are handled by ZoomManager
 
     document.addEventListener('mousedown', this.boundHandleMouseDown);
-  }
-
-  zoomIn() {
-    if (this.zoomLevel < ZOOM_MAX) {
-      this.zoomLevel = Math.min(ZOOM_MAX, this.zoomLevel + ZOOM_STEP);
-      this.applyZoom();
-    }
-  }
-
-  zoomOut() {
-    if (this.zoomLevel > ZOOM_MIN) {
-      this.zoomLevel = Math.max(ZOOM_MIN, this.zoomLevel - ZOOM_STEP);
-      this.applyZoom();
-    }
-  }
-
-  zoomReset() {
-    this.zoomLevel = ZOOM_DEFAULT;
-    this.applyZoom();
-  }
-
-  applyZoom() {
-    // Apply transform to the canvas container
-    if (this.canvasContainer) {
-      this.canvasContainer.style.transform = `scale(${this.zoomLevel})`;
-      this.canvasContainer.style.transformOrigin = 'top left';
-    }
-    
-    // Update zoom display
-    const zoomDisplay = document.getElementById('zoom-level');
-    if (zoomDisplay) {
-      zoomDisplay.textContent = `${Math.round(this.zoomLevel * 100)}%`;
-    }
-  }
-
-  // Convert screen coordinates to canvas coordinates (accounting for zoom)
-  screenToCanvas(screenX, screenY) {
-    const rect = this.canvasContainer.getBoundingClientRect();
-    return {
-      x: (screenX - rect.left) / this.zoomLevel,
-      y: (screenY - rect.top) / this.zoomLevel
-    };
-  }
-
-  // Convert canvas coordinates to screen coordinates
-  canvasToScreen(canvasX, canvasY) {
-    const rect = this.canvasContainer.getBoundingClientRect();
-    return {
-      x: canvasX * this.zoomLevel + rect.left,
-      y: canvasY * this.zoomLevel + rect.top
-    };
   }
 
   setTool(tool) {
@@ -191,8 +132,6 @@ class NodeEditor {
       <div class="node-connector input"></div>
       <div class="node-connector output"></div>
     `;
-    
-    nodeEl.addEventListener('dblclick', () => this.openEditor(node));
     
     this.nodesCanvas.appendChild(nodeEl);
     this.nodes.set(node.id, {

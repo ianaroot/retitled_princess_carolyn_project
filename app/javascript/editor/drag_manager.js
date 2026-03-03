@@ -1,10 +1,10 @@
 class DragManager {
-  constructor(nodesMap, nodesCanvas, api, connectionManager, nodeEditor) {
+  constructor(nodesMap, nodesCanvas, api, connectionManager, screenToCanvas) {
     this.nodes = nodesMap;
     this.nodesCanvas = nodesCanvas;
     this.api = api;
     this.connectionManager = connectionManager;
-    this.nodeEditor = nodeEditor;
+    this.screenToCanvas = screenToCanvas;
     
     this.selectedNode = null;
     this.isDragging = false;
@@ -35,8 +35,8 @@ class DragManager {
     const rect = nodeEl.getBoundingClientRect();
     
     // Calculate offset in canvas coordinates (accounting for zoom)
-    if (this.nodeEditor) {
-      const canvasCoords = this.nodeEditor.screenToCanvas(e.clientX, e.clientY);
+    if (this.screenToCanvas) {
+      const canvasCoords = this.screenToCanvas(e.clientX, e.clientY);
       this.dragOffset = {
         x: canvasCoords.x - parseFloat(nodeEl.style.left),
         y: canvasCoords.y - parseFloat(nodeEl.style.top)
@@ -63,8 +63,8 @@ class DragManager {
     const node = this.nodes.get(this.selectedNode);
     
     // Convert screen coordinates to canvas coordinates
-    if (this.nodeEditor) {
-      const canvasCoords = this.nodeEditor.screenToCanvas(e.clientX, e.clientY);
+    if (this.screenToCanvas) {
+      const canvasCoords = this.screenToCanvas(e.clientX, e.clientY);
       node.position.x = canvasCoords.x - this.dragOffset.x;
       node.position.y = canvasCoords.y - this.dragOffset.y;
     } else {

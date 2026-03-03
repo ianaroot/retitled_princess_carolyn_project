@@ -1,0 +1,16 @@
+{
+  "name": "retitled_princess_carolyn_project",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^1.3.1",
+    "@vitest/ui": "^1.3.1",
+    "jsdom": "^24.0.0"
+  }
+}
