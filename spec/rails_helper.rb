@@ -8,6 +8,21 @@ abort("The Rails environment is running in production mode!") if Rails.env.produ
 # that will avoid rails generators crashing because migrations haven't been run yet
 # return unless Rails.env.test?
 require 'rspec/rails'
+require 'capybara/rspec'
+
+Capybara.register_driver :selenium_chrome do |app|
+  options = Selenium::WebDriver::Chrome::Options.new
+  options.add_argument('--headless') unless ENV['SHOW_BROWSER']
+  options.add_argument('--no-sandbox')
+  options.add_argument('--disable-dev-shm-usage')
+  options.add_argument('--window-size=1400,900')
+  
+  Capybara::Selenium::Driver.new(app, browser: :chrome, options: options)
+end
+
+Capybara.javascript_driver = :selenium_chrome
+Capybara.default_max_wait_time = 5
+
 # Add additional requires below this line. Rails is not loaded until this point!
 
 # Requires supporting ruby files with custom matchers and macros, etc, in
@@ -38,6 +53,10 @@ RSpec.configure do |config|
 
   # Include Devise test helpers
   config.include Devise::Test::IntegrationHelpers, type: :request
+  config.include Devise::Test::IntegrationHelpers, type: :feature
+  
+  # Filter out slow tests by default (run with --tag slow to include them)
+  config.filter_run_excluding :slow unless ENV['RUN_SLOW_TESTS']
 
   # Remove this line if you're not using ActiveRecord or ActiveRecord fixtures
   config.fixture_paths = [
