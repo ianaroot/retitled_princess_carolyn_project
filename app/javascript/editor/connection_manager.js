@@ -26,6 +26,7 @@ class ConnectionManager {
   loadConnections() {
     this.nodes.forEach((node, id) => {
       const output = node.element.querySelector('.output');
+      // Only attach listeners if node has output connector (not action nodes)
       if (output && !this._elementsWithListeners.has(output)) {
         output.addEventListener('mousedown', (e) => this.startConnection(e, id));
         this._elementsWithListeners.set(output, true);

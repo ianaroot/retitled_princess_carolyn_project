@@ -3,7 +3,6 @@ FactoryBot.define do
     node_type { "condition" }
     position_x { 100.0 }
     position_y { 100.0 }
-    is_root { false }
     data { {} }
     association :bot
 
@@ -18,7 +17,13 @@ FactoryBot.define do
     end
 
     trait :root do
-      is_root { true }
+      node_type { "root" }
+      data { {} }
+    end
+    
+    trait :connector do
+      node_type { "connector" }
+      data { {} }
     end
   end
 end

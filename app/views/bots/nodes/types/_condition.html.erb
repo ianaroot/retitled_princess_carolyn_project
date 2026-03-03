@@ -1,0 +1,36 @@
+<% 
+data = node.data.is_a?(Hash) ? node.data : (JSON.parse(node.data) rescue {})
+context = data['context'] || 'self'
+query = data['query'] || '?'
+
+piece_info = ""
+if data['piece_filter_type'] == 'specific'
+  piece_info = "(#{data['piece_type'] || 'any'})"
+elsif data['piece_filter_type'] == 'negative'
+  piece_info = "(not #{data['piece_negative_type'] || 'pawn'})"
+elsif data['piece_filter_type'] == 'value'
+  piece_info = "(val #{data['piece_value_op']}#{data['piece_value_num']})"
+end
+
+details = ""
+if query == 'is_attacked' && data['attacker_filter_type']
+  if data['attacker_filter_type'] == 'specific'
+    details = " by #{data['attacker_type']}"
+  elsif data['attacker_filter_type'] == 'value'
+    details = " by val #{data['attacker_value_op']}#{data['attacker_value_num']}"
+  end
+elsif query == 'is_attacking' && data['attacked_filter_type']
+  if data['attacked_filter_type'] == 'specific'
+    details = " -> #{data['attacked_type']}"
+  elsif data['attacked_filter_type'] == 'value'
+    details = " -> val #{data['attacked_value_op']}#{data['attacked_value_num']}"
+  end
+elsif query == 'position'
+  if data['position_type'] == 'file'
+    details = " #{data['position_file']}"
+  else
+    details = " #{data['position_op']}#{data['position_num']}"
+  end
+end
+%>
+<div class="node-preview"><%= context %> <%= piece_info %>: <%= query %><%= details %></div>

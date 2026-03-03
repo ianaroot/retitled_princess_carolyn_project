@@ -33,6 +33,12 @@ class BotNodesController < ApplicationController
   end
 
   def destroy
+    # Prevent deletion of root nodes
+    if @node.root?
+      render json: { error: "Cannot delete root node" }, status: :unprocessable_entity
+      return
+    end
+    
     @node.destroy
     head :no_content
   end
@@ -48,6 +54,12 @@ class BotNodesController < ApplicationController
   def connect
     source_node = @bot.nodes.find(params[:id])
     target_node = @bot.nodes.find(params[:target_id])
+    
+    # Prevent connecting TO a root node (root can only have outgoing connections)
+    if target_node.root?
+      render json: { error: "Cannot connect to root node" }, status: :unprocessable_entity
+      return
+    end
     
     connection = NodeConnection.new(
       source_node: source_node,
@@ -82,6 +94,6 @@ class BotNodesController < ApplicationController
   end
 
   def node_params
-    params.require(:node).permit(:node_type, :position_x, :position_y, :is_root, data: {})
+    params.require(:node).permit(:node_type, :position_x, :position_y, data: {})
   end
 end

@@ -1,0 +1,4 @@
+<% 
+data = node.data.is_a?(Hash) ? node.data : (JSON.parse(node.data) rescue {})
+%>
+<div class="node-preview">Action: <%= data['action_type'] || 'move' %></div>
