@@ -451,8 +451,18 @@
   box-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
 }
 
+.node.selected {
+  box-shadow: 0 0 15px rgba(233, 69, 96, 0.8), 0 0 30px rgba(233, 69, 96, 0.4);
+  border-color: #ff6b6b;
+}
+
 .node.action:hover {
   box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+}
+
+.node.action.selected {
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.8), 0 0 30px rgba(76, 175, 80, 0.4);
+  border-color: #6abf69;
 }
 
 .node-editor-section {

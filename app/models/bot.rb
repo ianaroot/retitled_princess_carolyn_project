@@ -19,13 +19,10 @@ class Bot < ApplicationRecord
 
   validates :name, presence: true, uniqueness: true
   
-  # Create root node after bot is created
   after_create :create_root_node
   
-  # Validation to ensure root node exists (for existing bots)
-  validate :must_have_root_node, on: :update, if: :requires_root_validation?
+  validate :root_node_must_exist, on: :update
   
-  # Get the root node for this bot
   def root_node
     nodes.find_by(node_type: 'root')
   end
@@ -41,12 +38,7 @@ class Bot < ApplicationRecord
     )
   end
   
-  def requires_root_validation?
-    # Only validate if we're not in the middle of creating (after_create handles that)
-    persisted? && nodes.where(node_type: 'root').empty?
-  end
-  
-  def must_have_root_node
-    errors.add(:base, "Bot must have a root node")
+  def root_node_must_exist
+    errors.add(:base, "Bot must have a root node") unless root_node.present?
   end
 end

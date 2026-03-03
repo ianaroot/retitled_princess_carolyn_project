@@ -29,6 +29,14 @@ class Node < ApplicationRecord
   def action?
     node_type == 'action'
   end
+
+  def condition?
+    node_type == 'condition'
+  end
+  
+  def connector?
+    node_type == 'connector'
+  end
   
   private
   

@@ -119,23 +119,23 @@ class NodeTraverser
       [child_id, angle]
     end
     
-    # Sort by angle (counter-clockwise from midnight, ascending)
-    children_with_angles.sort_by { |_, angle| angle }.map(&:first)
+    # Sort by angle (counter-clockwise from midnight)
+    # Since DOM Y increases downward, we need descending order for CCW
+    children_with_angles.sort_by { |_, angle| -angle }.map(&:first)
   end
   
   # Calculate angle from origin to target, counter-clockwise from midnight
   # Returns angle in radians [0, 2π)
-  # 0 = midnight (straight up, negative Y)
-  # π/2 = 3 o'clock
-  # π = 6 o'clock  
-  # 3π/2 = 9 o'clock
+  # 0 = midnight (straight up)
+  # Sorting: Descending order gives counter-clockwise progression
+  #   (10 o'clock has larger angle than 9 o'clock, so it comes first)
   def calculate_angle(origin, target)
     dx = target[0] - origin[0]
     dy = target[1] - origin[1]
     
-    # atan2 normally: 0 at 3 o'clock, positive CCW
-    # We want: 0 at 12 o'clock (up), positive CCW
-    # So flip dy (because Y increases downward in DOM)
+    # Flip Y because DOM Y increases downward
+    # This makes angles increase clockwise from midnight
+    # We then sort descending to get counter-clockwise order
     raw_angle = Math.atan2(dx, -dy)
     
     # Normalize to [0, 2π)
@@ -197,14 +197,14 @@ class NodeTraverser
       @results << step
       @execution_stack << step
       
-      if result == true && child.node_type == 'condition'
+      if result == true && child.condition?
         # Continue depth-first with this node's children
         grandchildren = get_children(child_id)
         
         if grandchildren.any?
           # Check if first grandchild is an action (exception case)
           first_grandchild = @nodes[grandchildren.first]
-          if first_grandchild&.node_type == 'action'
+          if first_grandchild&.action?
             # Exception: condition followed by action = treat as false
             step.instance_variable_set(:@result, false)
             # Backtrack to parent's next sibling
@@ -218,8 +218,8 @@ class NodeTraverser
           # Backtrack to parent's next sibling
           break
         end
-      elsif result == true && child.node_type == 'root'
-        # Root nodes always continue (though they shouldn't have multiple children in practice)
+      elsif result == true && child.root?
+        # Root nodes always continue
         grandchildren = get_children(child_id)
         traverse_children(child_id, grandchildren, depth + 1) if grandchildren.any?
       end
@@ -247,33 +247,27 @@ class NodeTraverser
     )
   end
   
-  # Evaluate node result (for now, all conditions return true except exceptions)
+  # Evaluate node result
+  # NOTE: Returns are stubbed for testing traversal order only.
+  # TODO: Replace with actual condition evaluation against game state.
   def evaluate_node_result(node, node_id, depth)
-    case node.node_type
-    when 'condition'
-      # Check exception cases first
+    if node.condition?
+      # Stubbed: returns true except at chain bottom or before actions.
+      # TODO: Evaluate node.data against board state.
       children = get_children(node_id)
       
       if children.empty?
-        # Exception 1: Bottom of depth chain
         false
-      elsif children.length == 1
-        first_child = @nodes[children.first]
-        if first_child&.node_type == 'action'
-          # Exception 2: Immediately followed by action
-          false
-        else
-          true
-        end
+      elsif children.length == 1 && @nodes[children.first]&.action?
+        false
       else
-        # Has multiple children, not an exception
         true
       end
-    when 'action'
+    elsif node.action?
       # Actions are terminal - they don't return true/false in the same way
       # But for traversal purposes, let's say they "execute"
       :execute
-    when 'root', 'connector'
+    elsif node.root? || node.connector?
       # These are structural, continue traversal
       true
     else

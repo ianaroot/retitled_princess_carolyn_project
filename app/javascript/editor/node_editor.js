@@ -99,6 +99,17 @@ class NodeEditor {
       return;
     }
     
+    // Handle node selection highlighting
+    if (nodeEl && this.currentTool === 'select') {
+      // Clear previous selection
+      document.querySelectorAll('.node.selected').forEach(el => el.classList.remove('selected'));
+      // Select clicked node
+      nodeEl.classList.add('selected');
+    } else if (!nodeEl) {
+      // Clear selection when clicking empty canvas
+      document.querySelectorAll('.node.selected').forEach(el => el.classList.remove('selected'));
+    }
+    
     if (this.currentTool === 'delete' && nodeEl) {
       this.deleteNode(parseInt(nodeEl.dataset.id));
       return;
