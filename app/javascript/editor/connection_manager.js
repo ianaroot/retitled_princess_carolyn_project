@@ -4,10 +4,10 @@ const NODE_HEIGHT = 60;
 const CONNECTOR_OFFSET_Y = 30; // Half of node height to center on output connector
 
 class ConnectionManager {
-  constructor(api, nodesMap, nodeEditor) {
+  constructor(api, nodesMap, screenToCanvas) {
     this.api = api;
     this.nodes = nodesMap;
-    this.nodeEditor = nodeEditor;
+    this.screenToCanvas = screenToCanvas;
     this.connectionsCanvas = document.getElementById('connections-canvas');
     this.nodesCanvas = document.getElementById('nodes-canvas');
     
@@ -71,8 +71,8 @@ class ConnectionManager {
     const startY = parseFloat(sourceEl.style.top) + CONNECTOR_OFFSET_Y;
     
     // Convert screen coordinates to canvas coordinates for proper positioning
-    const canvasCoords = this.nodeEditor ? 
-      this.nodeEditor.screenToCanvas(x, y) : 
+    const canvasCoords = this.screenToCanvas ? 
+      this.screenToCanvas(x, y) : 
       { x: x - this.nodesCanvas.getBoundingClientRect().left, y: y - this.nodesCanvas.getBoundingClientRect().top };
     
     this.tempLine.setAttribute('x1', startX);
@@ -113,8 +113,8 @@ class ConnectionManager {
     if (!this.tempLine) return;
     
     // Convert screen coordinates to canvas coordinates for proper positioning
-    const canvasCoords = this.nodeEditor ? 
-      this.nodeEditor.screenToCanvas(x, y) : 
+    const canvasCoords = this.screenToCanvas ? 
+      this.screenToCanvas(x, y) : 
       { x: x - this.nodesCanvas.getBoundingClientRect().left, y: y - this.nodesCanvas.getBoundingClientRect().top };
     
     this.tempLine.setAttribute('x2', canvasCoords.x);

@@ -183,19 +183,11 @@
   display: none;
   pointer-events: auto;
   transform: translate(-50%, -50%);
-  z-index: 10;
+  z-index: 100;
 }
 
 .connection-delete-btn:hover {
   background: #ff6b6b;
-}
-
-.nodes-layer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  min-width: 100%;
-  min-height: 100%;
 }
 
 .connections-layer {
@@ -204,6 +196,17 @@
   left: 0;
   min-width: 100%;
   min-height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.nodes-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 100%;
+  min-height: 100%;
+  z-index: 2;
   pointer-events: none;
 }
 
@@ -215,6 +218,7 @@
   border-radius: 8px;
   cursor: move;
   user-select: none;
+  pointer-events: auto;
 }
 
 .node.condition {
