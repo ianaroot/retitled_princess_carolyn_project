@@ -51,7 +51,7 @@ RSpec.describe 'Node Editor', type: :feature, js: true do
     it 'connects two nodes by dragging from output to input' do
       visit edit_bot_path(bot)
       
-      expect(page).to have_css('.node', count: 2, wait: 5)
+      expect(page).to have_css('.node', count: 3, wait: 5)
       expect(page).to have_css('svg#connections-canvas', wait: 5)
       
       source = find(".node[data-id='#{node1.id}'] .node-connector.output", wait: 5)
@@ -71,7 +71,7 @@ RSpec.describe 'Node Editor', type: :feature, js: true do
     it 'drags a node to a new position' do
       visit edit_bot_path(bot)
       
-      expect(page).to have_css('.node', count: 1, wait: 5)
+      expect(page).to have_css('.node', count: 2, wait: 5)
       
       node_element = find(".node[data-id='#{node.id}']", wait: 5)
       
@@ -130,7 +130,7 @@ RSpec.describe 'Node Editor', type: :feature, js: true do
     it 'deletes a node using delete tool' do
       visit edit_bot_path(bot)
       
-      expect(page).to have_css('.node', count: 1, wait: 5)
+      expect(page).to have_css('.node', count: 2, wait: 5)
       
       click_button 'Delete'
       
@@ -138,7 +138,7 @@ RSpec.describe 'Node Editor', type: :feature, js: true do
         find(".node[data-id='#{node.id}']").click
       end
       
-      expect(page).to have_css('.node', count: 0, wait: 5)
+      expect(page).to have_css('.node', count: 1, wait: 5)
     end
   end
 
@@ -178,7 +178,7 @@ RSpec.describe 'Node Editor', type: :feature, js: true do
     it 'opens the editor panel when clicking a node' do
       visit edit_bot_path(bot)
       
-      expect(page).to have_css('.node', count: 1, wait: 5)
+      expect(page).to have_css('.node', count: 2, wait: 5)
       
       panel = find('#node-editor-panel', visible: :all, wait: 5)
       expect(panel[:class]).to include('hidden')

@@ -77,6 +77,7 @@ RSpec.describe BotNodesController, type: :request do
     end
 
     it 'creates a node with valid params' do
+      bot #instantiating the bot in advance so the creation of root node doesn't make the count change by 2 instead of 1
       expect {
         post bot_nodes_path(bot), params: valid_params
       }.to change(Node, :count).by(1)
@@ -91,6 +92,7 @@ RSpec.describe BotNodesController, type: :request do
     end
 
     it 'returns unprocessable entity with invalid params' do
+      bot #instantiating the bot in advance so the creation of root node doesn't make the count change by 2 instead of 1
       expect {
         post bot_nodes_path(bot), params: invalid_params
       }.not_to change(Node, :count)

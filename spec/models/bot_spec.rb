@@ -43,7 +43,8 @@ RSpec.describe Bot, type: :model do
     it 'destroys dependent nodes when destroyed' do
       bot = create(:bot)
       node = create(:node, bot: bot)
-      expect { bot.destroy }.to change { Node.count }.by(-1)
+      expect { bot.destroy }.to change { Node.count }.by(-2)
+      # also have to account for root node
     end
 
     it 'has many node_connections through nodes' do
@@ -62,7 +63,8 @@ RSpec.describe Bot, type: :model do
 
     it 'creates a bot with nodes using the with_nodes trait' do
       bot = create(:bot, :with_nodes)
-      expect(bot.nodes.count).to eq(3)
+      expect(bot.nodes.count).to eq(4)
+      # accounting for root node
     end
   end
 end
