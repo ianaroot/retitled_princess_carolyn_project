@@ -9,7 +9,7 @@ const INITIAL_POSITION_RANGE = 200;
 const MAX_PLACEMENT_ATTEMPTS = 50;
 
 // Zoom constants
-const ZOOM_MIN = 0.5;
+const ZOOM_MIN = 0.01;
 const ZOOM_MAX = 2.0;
 const ZOOM_STEP = 0.1;
 const ZOOM_DEFAULT = 1.0;
@@ -21,6 +21,10 @@ const BASE_CANVAS_HEIGHT = 2000;
 // Minimum visible canvas size (at max zoom)
 const MIN_CANVAS_WIDTH = 1500;
 const MIN_CANVAS_HEIGHT = 1000;
+
+// Node dimensions for positioning calculations
+const NODE_WIDTH = 100;
+const NODE_HEIGHT = 60;
 
 class NodeEditor {
   constructor(canvasId) {
@@ -57,6 +61,8 @@ class NodeEditor {
   init() {
     this.loadNodes();
     this.setupEventListeners();
+    // Center the view on loaded nodes after a brief delay to ensure DOM is ready
+    setTimeout(() => this.centerViewOnNodes(), 100);
   }
 
   loadNodes() {
@@ -152,6 +158,67 @@ class NodeEditor {
     }
   }
 
+  // Calculate bounding box of all nodes and center the view
+  centerViewOnNodes() {
+    if (this.nodes.size === 0) return;
+    
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
+    
+    // Find the bounding box of all nodes
+    this.nodes.forEach((node) => {
+      minX = Math.min(minX, node.position.x);
+      minY = Math.min(minY, node.position.y);
+      maxX = Math.max(maxX, node.position.x);
+      maxY = Math.max(maxY, node.position.y);
+    });
+    
+    // Add padding around nodes
+    const padding = 100;
+    minX -= padding;
+    minY -= padding;
+    maxX += padding + NODE_WIDTH; // Account for node width
+    maxY += padding + NODE_HEIGHT; // Account for node height
+    
+    // Get viewport dimensions
+    const containerRect = this.canvasContainer.getBoundingClientRect();
+    const viewportWidth = containerRect.width;
+    const viewportHeight = containerRect.height;
+    
+    // Calculate zoom level to fit all nodes
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+    const zoomX = viewportWidth / contentWidth;
+    const zoomY = viewportHeight / contentHeight;
+    
+    // Use the smaller zoom to ensure everything fits, but cap at ZOOM_DEFAULT (100%)
+    // Don't zoom in beyond 100%, but allow zooming out to fit spread-out nodes
+    const fitZoom = Math.min(zoomX, zoomY);
+    this.zoomLevel = Math.max(ZOOM_MIN, Math.min(fitZoom * 0.9, ZOOM_DEFAULT));
+    
+    // Apply the zoom (this resizes the canvas and scales content)
+    this.applyZoom();
+    
+    // Calculate center of bounding box
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    
+    // Wait for DOM to update after zoom, then scroll
+    requestAnimationFrame(() => {
+      // Calculate scroll position to center on nodes
+      // After zoom is applied, we need to scroll the scaled coordinates into view
+      const scaledCenterX = centerX * this.zoomLevel;
+      const scaledCenterY = centerY * this.zoomLevel;
+      
+      const scrollLeft = scaledCenterX - (viewportWidth / 2);
+      const scrollTop = scaledCenterY - (viewportHeight / 2);
+      
+      // Apply scroll
+      this.canvasContainer.scrollLeft = Math.max(0, scrollLeft);
+      this.canvasContainer.scrollTop = Math.max(0, scrollTop);
+    });
+  }
+
   // Convert screen coordinates to canvas coordinates (accounting for zoom)
   screenToCanvas(screenX, screenY) {
     const rect = this.canvasContainer.getBoundingClientRect();
@@ -219,8 +286,6 @@ class NodeEditor {
       <div class="node-connector input"></div>
       <div class="node-connector output"></div>
     `;
-    
-    nodeEl.addEventListener('dblclick', () => this.openEditor(node));
     
     this.nodesCanvas.appendChild(nodeEl);
     this.nodes.set(node.id, {
