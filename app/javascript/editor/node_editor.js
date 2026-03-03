@@ -99,6 +99,17 @@ class NodeEditor {
       return;
     }
     
+    // Handle node selection highlighting
+    if (nodeEl && this.currentTool === 'select') {
+      // Clear previous selection
+      document.querySelectorAll('.node.selected').forEach(el => el.classList.remove('selected'));
+      // Select clicked node
+      nodeEl.classList.add('selected');
+    } else if (!nodeEl) {
+      // Clear selection when clicking empty canvas
+      document.querySelectorAll('.node.selected').forEach(el => el.classList.remove('selected'));
+    }
+    
     if (this.currentTool === 'delete' && nodeEl) {
       this.deleteNode(parseInt(nodeEl.dataset.id));
       return;
@@ -125,12 +136,18 @@ class NodeEditor {
     nodeEl.style.left = `${node.position_x}px`;
     nodeEl.style.top = `${node.position_y}px`;
     
+    // Build connectors based on node type
+    let connectors = '<div class="node-connector input"></div>';
+    // Action nodes have no output (they are terminal)
+    if (node.node_type !== 'action') {
+      connectors += '<div class="node-connector output"></div>';
+    }
+    
     nodeEl.innerHTML = `
       <div class="node-content">
         <div class="node-preview">Configure...</div>
       </div>
-      <div class="node-connector input"></div>
-      <div class="node-connector output"></div>
+      ${connectors}
     `;
     
     this.nodesCanvas.appendChild(nodeEl);

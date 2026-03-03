@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_03_01_182000) do
+ActiveRecord::Schema[7.1].define(version: 2026_03_03_133813) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -56,10 +56,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_03_01_182000) do
     t.json "data", default: {}
     t.float "position_x", default: 0.0
     t.float "position_y", default: 0.0
-    t.boolean "is_root", default: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["bot_id"], name: "index_nodes_on_bot_id"
+    t.index ["bot_id"], name: "index_nodes_on_bot_id_root_unique", unique: true, where: "((node_type)::text = 'root'::text)"
+    t.check_constraint "node_type::text = ANY (ARRAY['condition'::character varying, 'action'::character varying, 'root'::character varying, 'connector'::character varying]::text[])", name: "node_type_check"
   end
 
   create_table "users", force: :cascade do |t|

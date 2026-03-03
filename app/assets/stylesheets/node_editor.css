@@ -186,9 +186,88 @@
   z-index: 100;
 }
 
-.connection-delete-btn:hover {
-  background: #ff6b6b;
+/* Action nodes have no output connector (they are end points) */
+.node.action .node-connector.output {
+  display: none;
 }
+
+.palette-item.root {
+  border-left: 3px solid #FFD700;
+}
+
+.palette-item.root .node-icon {
+  background: radial-gradient(circle at 30% 30%, #FFD700, #B8860B);
+  border-radius: 4px;
+}
+
+.palette-item.connector {
+  border-left: 3px solid #9C27B0;
+}
+
+.palette-item.connector .node-icon {
+  background: radial-gradient(circle at 30% 30%, #CE93D8, #7B1FA2);
+}
+
+.node.root {
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  border: 3px solid #FFD700;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.node.root .node-content {
+  padding: 0;
+  text-align: center;
+}
+
+.node.root .node-preview.root-label {
+  font-size: 18px;
+  font-weight: bold;
+  color: #FFD700;
+  letter-spacing: 2px;
+}
+
+.node.root:hover {
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+}
+
+.node.root .node-connector.output {
+  right: -7px;
+  top: 50%;
+  background: #FFD700;
+}
+
+.node.root .node-connector.output:hover {
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
+}
+
+/* Root nodes have no input connector */
+.node.root .node-connector.input {
+  display: none;
+}
+
+.node.connector {
+  border-radius: 50%;
+  border: 2px solid #9C27B0;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.node.connector:hover {
+  box-shadow: 0 0 10px rgba(156, 39, 176, 0.5);
+}
+
+.node.connector .node-connector {
+  background: #9C27B0;
+}
+
+.node.connector .node-connector:hover {
+  box-shadow: 0 0 8px rgba(156, 39, 176, 0.8);
+}
+
 
 .connections-layer {
   position: absolute;
@@ -372,8 +451,18 @@
   box-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
 }
 
+.node.selected {
+  box-shadow: 0 0 15px rgba(233, 69, 96, 0.8), 0 0 30px rgba(233, 69, 96, 0.4);
+  border-color: #ff6b6b;
+}
+
 .node.action:hover {
   box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+}
+
+.node.action.selected {
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.8), 0 0 30px rgba(76, 175, 80, 0.4);
+  border-color: #6abf69;
 }
 
 .node-editor-section {

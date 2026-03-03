@@ -1,7 +1,31 @@
 // Node dimension constants
 const NODE_WIDTH = 100;
 const NODE_HEIGHT = 60;
-const CONNECTOR_OFFSET_Y = 30; // Half of node height to center on output connector
+
+// Get actual node dimensions, falling back to defaults
+function getNodeDimensions(nodeElement) {
+  return {
+    width: parseFloat(nodeElement.offsetWidth) || NODE_WIDTH,
+    height: parseFloat(nodeElement.offsetHeight) || NODE_HEIGHT
+  };
+}
+
+// Calculate connector anchor points based on actual node dimensions
+function getOutputAnchor(nodeElement) {
+  const { width, height } = getNodeDimensions(nodeElement);
+  return {
+    x: width,  // Right edge of node
+    y: height / 2  // Vertical center
+  };
+}
+
+function getInputAnchor(nodeElement) {
+  const { height } = getNodeDimensions(nodeElement);
+  return {
+    x: 0,  // Left edge of node
+    y: height / 2  // Vertical center
+  };
+}
 
 class ConnectionManager {
   constructor(api, nodesMap, screenToCanvas) {
@@ -26,6 +50,7 @@ class ConnectionManager {
   loadConnections() {
     this.nodes.forEach((node, id) => {
       const output = node.element.querySelector('.output');
+      // Only attach listeners if node has output connector (not action nodes)
       if (output && !this._elementsWithListeners.has(output)) {
         output.addEventListener('mousedown', (e) => this.startConnection(e, id));
         this._elementsWithListeners.set(output, true);
@@ -67,8 +92,9 @@ class ConnectionManager {
     const sourceNode = this.nodes.get(this.connectSource.nodeId);
     const sourceEl = sourceNode.element;
     
-    const startX = parseFloat(sourceEl.style.left) + NODE_WIDTH;
-    const startY = parseFloat(sourceEl.style.top) + CONNECTOR_OFFSET_Y;
+    const anchor = getOutputAnchor(sourceEl);
+    const startX = parseFloat(sourceEl.style.left) + anchor.x;
+    const startY = parseFloat(sourceEl.style.top) + anchor.y;
     
     // Convert screen coordinates to canvas coordinates for proper positioning
     const canvasCoords = this.screenToCanvas ? 
@@ -148,13 +174,20 @@ class ConnectionManager {
     const sourceNode = this.nodes.get(sourceId);
     const targetNode = this.nodes.get(targetId);
     
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    const startX = parseFloat(sourceNode.element.style.left) + NODE_WIDTH;
-    const startY = parseFloat(sourceNode.element.style.top) + CONNECTOR_OFFSET_Y;
-    const endX = parseFloat(targetNode.element.style.left);
-    const endY = parseFloat(targetNode.element.style.top) + CONNECTOR_OFFSET_Y;
+    const sourceEl = sourceNode.element;
+    const targetEl = targetNode.element;
     
+    const sourceAnchor = getOutputAnchor(sourceEl);
+    const targetAnchor = getInputAnchor(targetEl);
+    
+    const startX = parseFloat(sourceEl.style.left) + sourceAnchor.x;
+    const startY = parseFloat(sourceEl.style.top) + sourceAnchor.y;
+    const endX = parseFloat(targetEl.style.left) + targetAnchor.x;
+    const endY = parseFloat(targetEl.style.top) + targetAnchor.y;
+    
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    
     hitArea.setAttribute('x1', startX);
     hitArea.setAttribute('y1', startY);
     hitArea.setAttribute('x2', endX);
@@ -229,10 +262,16 @@ class ConnectionManager {
       
       if (!sourceNode || !targetNode) return;
       
-      const startX = parseFloat(sourceNode.element.style.left) + NODE_WIDTH;
-      const startY = parseFloat(sourceNode.element.style.top) + CONNECTOR_OFFSET_Y;
-      const endX = parseFloat(targetNode.element.style.left);
-      const endY = parseFloat(targetNode.element.style.top) + CONNECTOR_OFFSET_Y;
+      const sourceEl = sourceNode.element;
+      const targetEl = targetNode.element;
+      
+      const sourceAnchor = getOutputAnchor(sourceEl);
+      const targetAnchor = getInputAnchor(targetEl);
+      
+      const startX = parseFloat(sourceEl.style.left) + sourceAnchor.x;
+      const startY = parseFloat(sourceEl.style.top) + sourceAnchor.y;
+      const endX = parseFloat(targetEl.style.left) + targetAnchor.x;
+      const endY = parseFloat(targetEl.style.top) + targetAnchor.y;
       
       line.setAttribute('x1', startX);
       line.setAttribute('y1', startY);
