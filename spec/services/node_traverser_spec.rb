@@ -207,6 +207,54 @@ RSpec.describe NodeTraverser do
       # end
     end
     
+    context 'DAG double-processing' do
+      let!(:root) { bot.root_node }
+      let!(:node_a) { create(:node, :condition, bot: bot, position_x: 200, position_y: 200) }
+      let!(:node_b) { create(:node, :condition, bot: bot, position_x: 600, position_y: 200) }
+      let!(:node_c) { create(:node, :action, bot: bot, position_x: 400, position_y: 400) }
+      
+      before do
+        create(:node_connection, source_node: root, target_node: node_a)
+        create(:node_connection, source_node: root, target_node: node_b)
+        create(:node_connection, source_node: node_a, target_node: node_c)
+        create(:node_connection, source_node: node_b, target_node: node_c)
+        
+        allow_any_instance_of(ConditionEvaluator).to receive(:evaluate).and_return(true)
+      end
+      
+      it 'visits shared descendant once per parent branch' do
+        traverser = described_class.new(bot)
+        results = traverser.traverse
+        
+        node_c_results = results.select { |r| r.node_id == node_c.id }
+        expect(node_c_results.length).to eq(2)
+      end
+      
+      it 'assigns sequential sort_order across both visits' do
+        traverser = described_class.new(bot)
+        results = traverser.traverse
+        
+        node_c_results = results.select { |r| r.node_id == node_c.id }
+        first_visit = node_c_results.first
+        second_visit = node_c_results.last
+        
+        # First visit to node_c should be at position 2 (after node_a at 1)
+        expect(first_visit.sort_order).to eq(2)
+        # Second visit to node_c should be at position 4 (after node_b at 3)
+        expect(second_visit.sort_order).to eq(4)
+      end
+      
+      it 'tracks different parent_ids for each visit' do
+        traverser = described_class.new(bot)
+        results = traverser.traverse
+        
+        node_c_results = results.select { |r| r.node_id == node_c.id }
+        parent_ids = node_c_results.map(&:parent_id)
+        
+        expect(parent_ids).to include(node_a.id, node_b.id)
+      end
+    end
+    
     context 'action results' do
       let!(:root) { bot.root_node }
       let!(:action) { create(:node, :action, bot: bot, position_x: 100, position_y: 100) }
