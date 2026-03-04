@@ -248,12 +248,16 @@ RSpec.describe NodeTraverser do
     
     describe '#calculate_angle' do
       it 'returns π for straight down from bottom output' do
-        node = create(:node, :condition, bot: bot, position_x: 100, position_y: 200)
-        traverser = described_class.new(bot)
+        # Use two condition nodes (not root) for consistent dimensions
+        parent = create(:node, :condition, bot: bot, position_x: 100, position_y: 100)
+        child = create(:node, :condition, bot: bot, position_x: 100, position_y: 200)
         
-        root_output = traverser.send(:output_anchor_point, root)
-        node_input = traverser.send(:input_anchor_point, node)
-        angle = traverser.send(:calculate_angle, root_output, node_input)
+        create(:node_connection, source_node: root, target_node: parent)
+        
+        traverser = described_class.new(bot)
+        parent_output = traverser.send(:output_anchor_point, parent)
+        child_input = traverser.send(:input_anchor_point, child)
+        angle = traverser.send(:calculate_angle, parent_output, child_input)
         
         expect(angle).to be_within(0.01).of(Math::PI)
       end
