@@ -241,7 +241,6 @@ class NodeTraverser
       @execution_stack << step
       
       if result == true && child.condition?
-        # Continue depth-first with this node's children
         grandchildren = get_children(child_id)
         traverse_children(child_id, grandchildren, depth + 1) if grandchildren.any?
       end
@@ -273,7 +272,8 @@ class NodeTraverser
   # Delegates evaluation logic to separate service for clean separation of concerns
   def evaluate_node_result(node, node_id, depth)
     children = get_children(node_id)
-    evaluator = ConditionEvaluator.new(node, nil) # Board state will be passed when implemented
+    # TEMPORARY: Pass nodes hash for child type lookup - remove once real evaluation implemented
+    evaluator = ConditionEvaluator.new(node, @nodes, nil)
     evaluator.evaluate(children)
   end
 end

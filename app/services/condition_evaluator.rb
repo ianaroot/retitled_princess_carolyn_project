@@ -4,8 +4,10 @@
 # Currently implements temporary stub logic for testing traversal order
 # TODO: Replace stub with actual chess board state evaluation
 class ConditionEvaluator
-  def initialize(node_data, board_state = nil)
+  # TEMPORARY: nodes hash passed for child type lookup - remove once real evaluation implemented
+  def initialize(node_data, nodes_hash = nil, board_state = nil)
     @node = node_data
+    @nodes = nodes_hash
     @board = board_state
   end
   
@@ -34,9 +36,11 @@ class ConditionEvaluator
       # Bottom of chain - treat as false to trigger backtracking in tests
       false
     elsif children.length == 1
-      # Check if single child is an action (temporary structural check)
+      # TEMPORARY: Check if single child is an action (structural check)
       # In real implementation, this would evaluate actual chess condition
-      false
+      first_child_id = children.first
+      first_child = @nodes[first_child_id] if @nodes
+      first_child&.node_type == 'action' ? false : true
     else
       # Multiple children - continue traversal
       true
