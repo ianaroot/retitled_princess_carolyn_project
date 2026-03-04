@@ -142,21 +142,21 @@ class NodeTraverser
     (raw_angle + 2 * Math::PI) % (2 * Math::PI)
   end
   
-  # Default output connector position (right side center)
+  # Default output connector position (bottom center)
   # Override this method for different node types
   def output_anchor_point(node)
     [
-      node.position_x + NODE_WIDTH,
-      node.position_y + (NODE_HEIGHT / 2.0)
+      node.position_x + (NODE_WIDTH / 2.0),  # Center horizontally
+      node.position_y + NODE_HEIGHT           # Bottom of node
     ]
   end
   
-  # Default input connector position (left side center)
+  # Default input connector position (top center)
   # Override this method for different node types
   def input_anchor_point(node)
     [
-      node.position_x,
-      node.position_y + (NODE_HEIGHT / 2.0)
+      node.position_x + (NODE_WIDTH / 2.0),  # Center horizontally
+      node.position_y                         # Top of node
     ]
   end
   
@@ -200,27 +200,6 @@ class NodeTraverser
       if result == true && child.condition?
         # Continue depth-first with this node's children
         grandchildren = get_children(child_id)
-        
-        if grandchildren.any?
-          # Check if first grandchild is an action (exception case)
-          first_grandchild = @nodes[grandchildren.first]
-          if first_grandchild&.action?
-            # Exception: condition followed by action = treat as false
-            step.instance_variable_set(:@result, false)
-            # Backtrack to parent's next sibling
-            break
-          else
-            traverse_children(child_id, grandchildren, depth + 1)
-          end
-        else
-          # No children = bottom of chain (exception case)
-          step.instance_variable_set(:@result, false)
-          # Backtrack to parent's next sibling
-          break
-        end
-      elsif result == true && child.root?
-        # Root nodes always continue
-        grandchildren = get_children(child_id)
         traverse_children(child_id, grandchildren, depth + 1) if grandchildren.any?
       end
       
@@ -247,31 +226,10 @@ class NodeTraverser
     )
   end
   
-  # Evaluate node result
-  # NOTE: Returns are stubbed for testing traversal order only.
-  # TODO: Replace with actual condition evaluation against game state.
+  # Evaluate node result by delegating to the node's evaluate_condition method
+  # The node method handles the temporary stub logic (true/false based on structure)
   def evaluate_node_result(node, node_id, depth)
-    if node.condition?
-      # Stubbed: returns true except at chain bottom or before actions.
-      # TODO: Evaluate node.data against board state.
-      children = get_children(node_id)
-      
-      if children.empty?
-        false
-      elsif children.length == 1 && @nodes[children.first]&.action?
-        false
-      else
-        true
-      end
-    elsif node.action?
-      # Actions are terminal - they don't return true/false in the same way
-      # But for traversal purposes, let's say they "execute"
-      :execute
-    elsif node.root? || node.connector?
-      # These are structural, continue traversal
-      true
-    else
-      true
-    end
+    children = get_children(node_id)
+    node.evaluate_condition(children, depth)
   end
 end

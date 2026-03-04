@@ -1,30 +1,78 @@
-// Node dimension constants
+// Node dimension constants (fallback only)
 const NODE_WIDTH = 100;
 const NODE_HEIGHT = 60;
 
-// Get actual node dimensions, falling back to defaults
-function getNodeDimensions(nodeElement) {
-  return {
-    width: parseFloat(nodeElement.offsetWidth) || NODE_WIDTH,
-    height: parseFloat(nodeElement.offsetHeight) || NODE_HEIGHT
-  };
+// Cache for connector positions (prevents repeated DOM measurements)
+const connectorCache = new WeakMap();
+
+// Parse CSS length value to pixels
+// Handles: '50%' -> calculated pixels, '100px' -> 100, '0' -> 0
+function parseCSSLength(value, referenceSize) {
+  value = value.trim();
+  if (value.includes('%')) {
+    return (parseFloat(value) / 100) * referenceSize;
+  }
+  return parseFloat(value) || 0;
 }
 
-// Calculate connector anchor points based on actual node dimensions
-function getOutputAnchor(nodeElement) {
-  const { width, height } = getNodeDimensions(nodeElement);
-  return {
-    x: width,  // Right edge of node
-    y: height / 2  // Vertical center
+// Read CSS custom properties for connector positions
+// Returns { inputX, inputY, outputX, outputY } relative to node top-left
+function readCSSConnectors(nodeElement) {
+  const styles = getComputedStyle(nodeElement);
+  
+  // Read CSS custom properties
+  const inputXProp = styles.getPropertyValue('--connector-input-x').trim();
+  const inputYProp = styles.getPropertyValue('--connector-input-y').trim();
+  const outputXProp = styles.getPropertyValue('--connector-output-x').trim();
+  const outputYProp = styles.getPropertyValue('--connector-output-y').trim();
+  
+  // Get node dimensions
+  const nodeWidth = nodeElement.offsetWidth || NODE_WIDTH;
+  const nodeHeight = nodeElement.offsetHeight || NODE_HEIGHT;
+  
+  // Parse X positions (handles percentages or pixels)
+  const inputX = parseCSSLength(inputXProp, nodeWidth);
+  const outputX = parseCSSLength(outputXProp, nodeWidth);
+  
+  // Parse Y positions
+  // CSS has positioning with transforms that center the 14px dot
+  // Input: positioned at top with offset, center is -7px from top edge
+  // Output: positioned at bottom with offset, center is height+7px from top
+  const inputY = parseCSSLength(inputYProp, nodeHeight) - 7;
+  const outputY = nodeHeight - parseCSSLength(outputYProp, nodeHeight) + 7;
+  
+  const cache = { 
+    inputX: inputX, 
+    inputY: inputY,
+    outputX: outputX, 
+    outputY: outputY
   };
+  
+  connectorCache.set(nodeElement, cache);
+  return cache;
 }
 
+// Get cached or freshly read input anchor point
 function getInputAnchor(nodeElement) {
-  const { height } = getNodeDimensions(nodeElement);
-  return {
-    x: 0,  // Left edge of node
-    y: height / 2  // Vertical center
-  };
+  let cache = connectorCache.get(nodeElement);
+  if (!cache) {
+    cache = readCSSConnectors(nodeElement);
+  }
+  return { x: cache.inputX, y: cache.inputY };
+}
+
+// Get cached or freshly read output anchor point
+function getOutputAnchor(nodeElement) {
+  let cache = connectorCache.get(nodeElement);
+  if (!cache) {
+    cache = readCSSConnectors(nodeElement);
+  }
+  return { x: cache.outputX, y: cache.outputY };
+}
+
+// Clear cache for a specific node (call when node content changes)
+function clearConnectorCache(nodeElement) {
+  connectorCache.delete(nodeElement);
 }
 
 class ConnectionManager {
