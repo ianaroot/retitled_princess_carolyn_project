@@ -2,6 +2,7 @@
 
 # Module for node sorting logic and geometry calculations
 module NodeSortOrder
+  
   def sort_children(parent_id, nodes, connections, node_dimensions)
     child_ids = connections[parent_id] || []
     return [] if child_ids.empty?

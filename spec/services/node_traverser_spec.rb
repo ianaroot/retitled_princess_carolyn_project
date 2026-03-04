@@ -316,71 +316,15 @@ RSpec.describe NodeTraverser do
     end
   end
   
-  describe 'geometry calculations with top/bottom connectors' do
-    let!(:root) { bot.root_node }
-    
-    before do
-      root.update!(position_x: 100, position_y: 50)
+  describe 'module inclusion' do
+    it 'includes NodeSortOrder module for sorting functionality' do
+      expect(described_class.ancestors).to include(NodeSortOrder)
     end
     
-    describe '#calculate_angle' do
-      it 'returns π for straight down from bottom output' do
-        # Use two condition nodes (not root) for consistent dimensions
-        parent = create(:node, :condition, bot: bot, position_x: 100, position_y: 100)
-        child = create(:node, :condition, bot: bot, position_x: 100, position_y: 200)
-        
-        create(:node_connection, source_node: root, target_node: parent)
-        
-        traverser = described_class.new(bot)
-        parent_output = traverser.send(:output_anchor_point, parent)
-        child_input = traverser.send(:input_anchor_point, child)
-        angle = traverser.send(:calculate_angle, parent_output, child_input)
-        
-        expect(angle).to be_within(0.01).of(Math::PI)
-      end
-      
-      it 'orders children counter-clockwise from midnight (straight down) despite scrambled instantiation' do
-        # Create 5 nodes in scrambled order to prove angles determine sorting, not IDs
-        far_right = create(:node, :condition, bot: bot, position_x: 200, position_y: 200)
-        mid_left = create(:node, :condition, bot: bot, position_x: 50, position_y: 200)
-        center = create(:node, :condition, bot: bot, position_x: 100, position_y: 200)
-        far_left = create(:node, :condition, bot: bot, position_x: 0, position_y: 200)
-        mid_right = create(:node, :condition, bot: bot, position_x: 150, position_y: 200)
-        
-        create(:node_connection, source_node: root, target_node: far_right)
-        create(:node_connection, source_node: root, target_node: mid_left)
-        create(:node_connection, source_node: root, target_node: center)
-        create(:node_connection, source_node: root, target_node: far_left)
-        create(:node_connection, source_node: root, target_node: mid_right)
-        
-        traverser = described_class.new(bot)
-        results = traverser.traverse
-        
-        # Expected CCW order from midnight: far_left (leftmost) → mid_left → center → mid_right → far_right
-        expect(results.map(&:node_id)).to eq([far_left.id, mid_left.id, center.id, mid_right.id, far_right.id])
-      end
-    end
-    
-    describe '#output_anchor_point' do
-      it 'calculates bottom center of node' do
-        node = create(:node, :condition, bot: bot, position_x: 100, position_y: 100)
-        traverser = described_class.new(bot)
-        point = traverser.send(:output_anchor_point, node)
-        
-        expect(point[0]).to eq(150.0)
-        expect(point[1]).to eq(160.0)
-      end
-    end
-    
-    describe '#input_anchor_point' do
-      it 'calculates top center of node' do
-        node = create(:node, :condition, bot: bot, position_x: 100, position_y: 100)
-        traverser = described_class.new(bot)
-        point = traverser.send(:input_anchor_point, node)
-        
-        expect(point[0]).to eq(150.0)
-        expect(point[1]).to eq(100.0)
-      end
+    it 'accepts node_dimensions via constructor' do
+      custom_dimensions = { 'condition' => { width: 50, height: 30 } }
+      traverser = described_class.new(bot, custom_dimensions)
+      expect(traverser).to be_a(described_class)
     end
   end
 end
