@@ -3,8 +3,13 @@
 # Service class for traversing bot node graphs and determining execution order
 # Supports DAG structures, counter-clockwise spatial ordering, and infinite loop detection
 class NodeTraverser
-  NODE_WIDTH = 100
-  NODE_HEIGHT = 60
+  # Node dimensions by type - class-level hash for lookup
+  NODE_DIMENSIONS = {
+    'condition' => { width: 100, height: 60 },
+    'action' => { width: 100, height: 60 },
+    'root' => { width: 120, height: 120 },
+    'connector' => { width: 40, height: 40 }
+  }.freeze
   
   # Result class to hold traversal step information
   class TraversalStep
@@ -49,9 +54,30 @@ class NodeTraverser
     end
   end
   
+  # Lightweight node struct for memory efficiency
+  NodeData = Struct.new(:id, :node_type, :position_x, :position_y, :data, :bot_id) do
+    # Type check helpers (match Node model interface)
+    def condition?
+      node_type == 'condition'
+    end
+    
+    def action?
+      node_type == 'action'
+    end
+    
+    def root?
+      node_type == 'root'
+    end
+    
+    def connector?
+      node_type == 'connector'
+    end
+  end
+  
   def initialize(bot)
     @bot = bot
-    @nodes = bot.nodes.index_by(&:id)
+    # Use pluck with Structs for memory efficiency
+    @nodes = load_nodes_as_structs
     @connections = preload_connections
     @results = []
     @execution_stack = [] # Tracks current path for cycle detection
@@ -95,12 +121,27 @@ class NodeTraverser
   
   private
   
+  # Load nodes as lightweight Structs to reduce memory footprint
+  def load_nodes_as_structs
+    @bot.nodes.pluck(:id, :node_type, :position_x, :position_y, :data, :bot_id)
+        .map { |attrs| NodeData.new(*attrs) }
+        .index_by(&:id)
+  end
+  
+  # Get dimensions for a node type
+  def node_dimensions(node)
+    NODE_DIMENSIONS.fetch(node.node_type, { width: 100, height: 60 })
+  end
+  
   # Preload all connections into a hash for fast lookup
+  # Queries NodeConnection directly since @nodes are Structs without associations
   def preload_connections
-    connections = {}
-    @nodes.each do |id, node|
-      connections[id] = node.outgoing_connections.includes(:target_node).map(&:target_node_id)
-    end
+    connections = Hash.new { |hash, key| hash[key] = [] }
+    NodeConnection.where(source_node_id: @nodes.keys)
+      .pluck(:source_node_id, :target_node_id)
+      .each do |source_id, target_id|
+        connections[source_id] << target_id
+      end
     connections
   end
   
@@ -145,18 +186,20 @@ class NodeTraverser
   # Default output connector position (bottom center)
   # Override this method for different node types
   def output_anchor_point(node)
+    dims = node_dimensions(node)
     [
-      node.position_x + (NODE_WIDTH / 2.0),  # Center horizontally
-      node.position_y + NODE_HEIGHT           # Bottom of node
+      node.position_x + (dims[:width] / 2.0),  # Center horizontally
+      node.position_y + dims[:height]          # Bottom of node
     ]
   end
   
   # Default input connector position (top center)
   # Override this method for different node types
   def input_anchor_point(node)
+    dims = node_dimensions(node)
     [
-      node.position_x + (NODE_WIDTH / 2.0),  # Center horizontally
-      node.position_y                         # Top of node
+      node.position_x + (dims[:width] / 2.0),  # Center horizontally
+      node.position_y                          # Top of node
     ]
   end
   
@@ -226,10 +269,11 @@ class NodeTraverser
     )
   end
   
-  # Evaluate node result by delegating to the node's evaluate_condition method
-  # The node method handles the temporary stub logic (true/false based on structure)
+  # Evaluate node result using ConditionEvaluator service object
+  # Delegates evaluation logic to separate service for clean separation of concerns
   def evaluate_node_result(node, node_id, depth)
     children = get_children(node_id)
-    node.evaluate_condition(children, depth)
+    evaluator = ConditionEvaluator.new(node, nil) # Board state will be passed when implemented
+    evaluator.evaluate(children)
   end
 end

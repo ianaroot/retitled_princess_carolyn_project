@@ -19,8 +19,8 @@ RSpec.describe NodeTraverser do
         create(:node_connection, source_node: node_b, target_node: node_c)
         
         # TODO: Remove this once conditions are properly evaluated
-        # Currently stubbing all conditions to return true so traversal continues
-        allow_any_instance_of(Node).to receive(:evaluate_condition).and_return(true)
+        # Currently stubbing ConditionEvaluator to return true so traversal continues
+        allow_any_instance_of(ConditionEvaluator).to receive(:evaluate).and_return(true)
       end
       
       it 'visits all connected nodes from root' do
@@ -69,7 +69,7 @@ RSpec.describe NodeTraverser do
         
         # TODO: Remove this once conditions are properly evaluated
         # Currently stubbing all conditions to return true so traversal continues
-        allow_any_instance_of(Node).to receive(:evaluate_condition).and_return(true)
+        allow_any_instance_of(ConditionEvaluator).to receive(:evaluate_condition).and_return(true)
       end
       
       it 'explores first child branch fully before second child' do
@@ -190,7 +190,7 @@ RSpec.describe NodeTraverser do
         
         # TODO: Remove this once conditions are properly evaluated
         # Currently stubbing all conditions to return true so traversal continues
-        allow_any_instance_of(Node).to receive(:evaluate_condition).and_return(true)
+        allow_any_instance_of(ConditionEvaluator).to receive(:evaluate_condition).and_return(true)
       end
       
       it 'traverses into child when condition returns true' do
