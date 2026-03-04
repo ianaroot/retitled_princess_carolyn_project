@@ -86,11 +86,13 @@ RSpec.describe NodeTraverser do
       let!(:root) { bot.root_node }
       let!(:node_a) { create(:node, :condition, bot: bot, position_x: 100, position_y: 100) }
       let!(:node_b) { create(:node, :condition, bot: bot, position_x: 200, position_y: 100) }
+      let!(:node_c) { create(:node, :condition, bot: bot, position_x: 300, position_y: 100) }
       
       before do
         create(:node_connection, source_node: root, target_node: node_a)
         create(:node_connection, source_node: node_a, target_node: node_b)
-        create(:node_connection, source_node: node_b, target_node: node_a)
+        create(:node_connection, source_node: node_b, target_node: node_c)
+        create(:node_connection, source_node: node_c, target_node: node_a)
       end
       
       it 'raises InfiniteLoopError for cycles' do
@@ -128,6 +130,81 @@ RSpec.describe NodeTraverser do
         expect(ids).to include(connected.id)
         expect(ids).not_to include(disconnected.id)
       end
+    end
+    
+    context 'collinear children ordered by distance from parent' do
+      let!(:root) { bot.root_node }
+      let!(:parent) { create(:node, :condition, bot: bot, position_x: 400, position_y: 100) }
+      # Position parent at same X as root, children at same X as parent
+      # This ensures perfect collinearity (all condition nodes are 100x60)
+      # SCRAMBLED creation order (not by distance from parent):
+      let!(:far) { create(:node, :condition, bot: bot, position_x: 400, position_y: 600) }   # Distance: 440
+      let!(:mid) { create(:node, :condition, bot: bot, position_x: 400, position_y: 350) }   # Distance: 190  
+      let!(:near) { create(:node, :condition, bot: bot, position_x: 400, position_y: 200) }   # Distance: 40
+      let!(:mid2) { create(:node, :condition, bot: bot, position_x: 400, position_y: 450) }  # Distance: 290
+      let!(:near2) { create(:node, :condition, bot: bot, position_x: 400, position_y: 280) }  # Distance: 120
+      
+      before do
+        
+        # Connect root -> parent
+        create(:node_connection, source_node: root, target_node: parent)
+        
+        # SCRAMBLED connection order (not by distance):
+        create(:node_connection, source_node: parent, target_node: mid)
+        create(:node_connection, source_node: parent, target_node: far)
+        create(:node_connection, source_node: parent, target_node: near2)
+        create(:node_connection, source_node: parent, target_node: near)
+        create(:node_connection, source_node: parent, target_node: mid2)
+        
+        # Stub to traverse into parent's children
+        allow_any_instance_of(ConditionEvaluator).to receive(:evaluate).and_return(true)
+      end
+      
+      it 'orders collinear children by proximity to parent (nearest first)' do
+        traverser = described_class.new(bot)
+        results = traverser.traverse
+        
+        # Filter to only parent's children (skip parent itself)
+        parent_children = results.select { |r| r.parent_id == parent.id }
+        actual_ids = parent_children.map(&:node_id)
+        
+        # Expected order by distance from parent's bottom anchor: near -> near2 -> mid -> mid2 -> far
+        expected_ids = [near.id, near2.id, mid.id, mid2.id, far.id]
+        expect(actual_ids).to eq(expected_ids)
+      end
+      
+      it 'assigns sequential sort_order based on distance' do
+        traverser = described_class.new(bot)
+        results = traverser.traverse
+        
+        parent_children = results.select { |r| r.parent_id == parent.id }
+        
+        near_step = parent_children.find { |r| r.node_id == near.id }
+        near2_step = parent_children.find { |r| r.node_id == near2.id }
+        mid_step = parent_children.find { |r| r.node_id == mid.id }
+        mid2_step = parent_children.find { |r| r.node_id == mid2.id }
+        far_step = parent_children.find { |r| r.node_id == far.id }
+        
+        expect(near_step.sort_order).to be < near2_step.sort_order
+        expect(near2_step.sort_order).to be < mid_step.sort_order
+        expect(mid_step.sort_order).to be < mid2_step.sort_order
+        expect(mid2_step.sort_order).to be < far_step.sort_order
+      end
+      
+      # it 'debug: show angles for collinear children' do
+      #   traverser = described_class.new(bot)
+      #   parent_output = traverser.send(:output_anchor_point, parent)
+        
+      #   [near, near2, mid, mid2, far].each do |child|
+      #     child_input = traverser.send(:input_anchor_point, child)
+      #     angle = traverser.send(:calculate_angle, parent_output, child_input)
+      #     distance = Math.sqrt((child_input[0] - parent_output[0])**2 + (child_input[1] - parent_output[1])**2)
+      #     puts "Node #{child.id}: angle=#{angle * 180 / Math::PI}°, distance=#{distance}"
+      #   end
+        
+      #   results = traverser.traverse
+      #   puts "Traversal order: #{results.select { |r| r.parent_id == parent.id }.map { |r| [r.node_id, r.angle ? r.angle * 180 / Math::PI : nil] }}"
+      # end
     end
     
     context 'action results' do
