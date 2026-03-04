@@ -3,13 +3,7 @@
 # Service class for traversing bot node graphs and determining execution order
 # Supports DAG structures, counter-clockwise spatial ordering, and infinite loop detection
 class NodeTraverser
-  # Node dimensions by type - class-level hash for lookup
-  NODE_DIMENSIONS = {
-    'condition' => { width: 100, height: 60 },
-    'action' => { width: 100, height: 60 },
-    'root' => { width: 120, height: 120 },
-    'connector' => { width: 40, height: 40 }
-  }.freeze
+  include NodeSortOrder
   
   # Result class to hold traversal step information
   class TraversalStep
@@ -74,8 +68,9 @@ class NodeTraverser
     end
   end
   
-  def initialize(bot)
+  def initialize(bot, node_dimensions = ApplicationHelper::NODE_DIMENSIONS)
     @bot = bot
+    @node_dimensions = node_dimensions
     # Use pluck with Structs for memory efficiency
     @nodes = load_nodes_as_structs
     @connections = preload_connections
@@ -128,11 +123,6 @@ class NodeTraverser
         .index_by(&:id)
   end
   
-  # Get dimensions for a node type
-  def node_dimensions(node)
-    NODE_DIMENSIONS.fetch(node.node_type, { width: 100, height: 60 })
-  end
-  
   # Preload all connections into a hash for fast lookup
   # Queries NodeConnection directly since @nodes are Structs without associations
   def preload_connections
@@ -147,60 +137,7 @@ class NodeTraverser
   
   # Get children of a node, sorted by counter-clockwise angle from midnight
   def get_children(node_id)
-    child_ids = @connections[node_id] || []
-    return [] if child_ids.empty?
-    
-    parent = @nodes[node_id]
-    parent_output = output_anchor_point(parent)
-    
-    children_with_angles = child_ids.map do |child_id|
-      child = @nodes[child_id]
-      child_input = input_anchor_point(child)
-      angle = calculate_angle(parent_output, child_input)
-      [child_id, angle]
-    end
-    
-    # Sort by angle (counter-clockwise from midnight)
-    # Since DOM Y increases downward, we need descending order for CCW
-    children_with_angles.sort_by { |_, angle| -angle }.map(&:first)
-  end
-  
-  # Calculate angle from origin to target, counter-clockwise from midnight
-  # Returns angle in radians [0, 2π)
-  # 0 = midnight (straight up)
-  # Sorting: Descending order gives counter-clockwise progression
-  #   (10 o'clock has larger angle than 9 o'clock, so it comes first)
-  def calculate_angle(origin, target)
-    dx = target[0] - origin[0]
-    dy = target[1] - origin[1]
-    
-    # Flip Y because DOM Y increases downward
-    # This makes angles increase clockwise from midnight
-    # We then sort descending to get counter-clockwise order
-    raw_angle = Math.atan2(dx, -dy)
-    
-    # Normalize to [0, 2π)
-    (raw_angle + 2 * Math::PI) % (2 * Math::PI)
-  end
-  
-  # Default output connector position (bottom center)
-  # Override this method for different node types
-  def output_anchor_point(node)
-    dims = node_dimensions(node)
-    [
-      node.position_x + (dims[:width] / 2.0),  # Center horizontally
-      node.position_y + dims[:height]          # Bottom of node
-    ]
-  end
-  
-  # Default input connector position (top center)
-  # Override this method for different node types
-  def input_anchor_point(node)
-    dims = node_dimensions(node)
-    [
-      node.position_x + (dims[:width] / 2.0),  # Center horizontally
-      node.position_y                          # Top of node
-    ]
+    sort_children(node_id, @nodes, @connections, @node_dimensions)
   end
   
   # Main traversal logic with backtracking
@@ -208,7 +145,7 @@ class NodeTraverser
     return if child_ids.empty?
     
     parent = @nodes[parent_id]
-    parent_output = output_anchor_point(parent)
+    parent_output = output_anchor_point(parent, @node_dimensions)
     
     child_ids.each_with_index do |child_id, index|
       child = @nodes[child_id]
@@ -219,8 +156,9 @@ class NodeTraverser
         raise InfiniteLoopError.new(cycle_path)
       end
       
-      # Calculate angle for this child
-      child_input = input_anchor_point(child)
+      # DEBUG: Calculate angle for logging/display purposes only
+      # This can be commented out later if not needed for debugging
+      child_input = input_anchor_point(child, @node_dimensions)
       angle = calculate_angle(parent_output, child_input)
       @next_sort_order += 1
       
