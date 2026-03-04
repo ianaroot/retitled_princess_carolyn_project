@@ -35,8 +35,7 @@
 /config/master.key
 
 # local communication with ai for context window persistence
-/.cursorrules
-/AGENTS.md
+/agents/
 
 # spec results
 /node_modules/.vite/vitest/results.json
