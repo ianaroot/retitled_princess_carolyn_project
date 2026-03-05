@@ -1,30 +1,67 @@
-// Node dimension constants
+// Node dimension constants (fallback only)
 const NODE_WIDTH = 100;
 const NODE_HEIGHT = 60;
 
-// Get actual node dimensions, falling back to defaults
-function getNodeDimensions(nodeElement) {
-  return {
-    width: parseFloat(nodeElement.offsetWidth) || NODE_WIDTH,
-    height: parseFloat(nodeElement.offsetHeight) || NODE_HEIGHT
+// Cache for connector positions (prevents repeated DOM measurements)
+const connectorCache = new WeakMap();
+
+// Measure actual connector element positions using getBoundingClientRect
+// Returns { inputX, inputY, outputX, outputY } relative to node top-left
+function readCSSConnectors(nodeElement) {
+  const inputConnector = nodeElement.querySelector('.node-connector.input');
+  const outputConnector = nodeElement.querySelector('.node-connector.output');
+  
+  const nodeRect = nodeElement.getBoundingClientRect();
+  
+  let inputX = nodeRect.width / 2;  // Default: center
+  let inputY = -7;                  // Default: slightly above top
+  let outputX = nodeRect.width / 2; // Default: center
+  let outputY = nodeRect.height + 7; // Default: slightly below bottom
+  
+  if (inputConnector) {
+    const inputRect = inputConnector.getBoundingClientRect();
+    inputX = inputRect.left - nodeRect.left + inputRect.width / 2;
+    inputY = inputRect.top - nodeRect.top + inputRect.height / 2;
+  }
+  
+  if (outputConnector) {
+    const outputRect = outputConnector.getBoundingClientRect();
+    outputX = outputRect.left - nodeRect.left + outputRect.width / 2;
+    outputY = outputRect.top - nodeRect.top + outputRect.height / 2;
+  }
+  
+  const cache = { 
+    inputX: inputX, 
+    inputY: inputY,
+    outputX: outputX, 
+    outputY: outputY
   };
+  
+  connectorCache.set(nodeElement, cache);
+  return cache;
 }
 
-// Calculate connector anchor points based on actual node dimensions
-function getOutputAnchor(nodeElement) {
-  const { width, height } = getNodeDimensions(nodeElement);
-  return {
-    x: width,  // Right edge of node
-    y: height / 2  // Vertical center
-  };
-}
-
+// Get cached or freshly measured input anchor point
 function getInputAnchor(nodeElement) {
-  const { height } = getNodeDimensions(nodeElement);
-  return {
-    x: 0,  // Left edge of node
-    y: height / 2  // Vertical center
-  };
+  let cache = connectorCache.get(nodeElement);
+  if (!cache) {
+    cache = readCSSConnectors(nodeElement);
+  }
+  return { x: cache.inputX, y: cache.inputY };
+}
+
+// Get cached or freshly measured output anchor point
+function getOutputAnchor(nodeElement) {
+  let cache = connectorCache.get(nodeElement);
+  if (!cache) {
+    cache = readCSSConnectors(nodeElement);
+  }
+  return { x: cache.outputX, y: cache.outputY };
+}
+
+// Clear cache for a specific node (call when node content changes)
+function clearConnectorCache(nodeElement) {
+  connectorCache.delete(nodeElement);
 }
 
 class ConnectionManager {

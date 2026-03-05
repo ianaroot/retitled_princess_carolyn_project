@@ -3,8 +3,7 @@
 # Service class for traversing bot node graphs and determining execution order
 # Supports DAG structures, counter-clockwise spatial ordering, and infinite loop detection
 class NodeTraverser
-  NODE_WIDTH = 100
-  NODE_HEIGHT = 60
+  include NodeSortOrder
   
   # Result class to hold traversal step information
   class TraversalStep
@@ -49,9 +48,31 @@ class NodeTraverser
     end
   end
   
-  def initialize(bot)
+  # Lightweight node struct for memory efficiency
+  NodeData = Struct.new(:id, :node_type, :position_x, :position_y, :data, :bot_id) do
+    # Type check helpers (match Node model interface)
+    def condition?
+      node_type == 'condition'
+    end
+    
+    def action?
+      node_type == 'action'
+    end
+    
+    def root?
+      node_type == 'root'
+    end
+    
+    def connector?
+      node_type == 'connector'
+    end
+  end
+  
+  def initialize(bot, node_dimensions = ApplicationHelper::NODE_DIMENSIONS)
     @bot = bot
-    @nodes = bot.nodes.index_by(&:id)
+    @node_dimensions = node_dimensions
+    # Use pluck with Structs for memory efficiency
+    @nodes = load_nodes_as_structs
     @connections = preload_connections
     @results = []
     @execution_stack = [] # Tracks current path for cycle detection
@@ -95,69 +116,28 @@ class NodeTraverser
   
   private
   
+  # Load nodes as lightweight Structs to reduce memory footprint
+  def load_nodes_as_structs
+    @bot.nodes.pluck(:id, :node_type, :position_x, :position_y, :data, :bot_id)
+        .map { |attrs| NodeData.new(*attrs) }
+        .index_by(&:id)
+  end
+  
   # Preload all connections into a hash for fast lookup
+  # Queries NodeConnection directly since @nodes are Structs without associations
   def preload_connections
-    connections = {}
-    @nodes.each do |id, node|
-      connections[id] = node.outgoing_connections.includes(:target_node).map(&:target_node_id)
-    end
+    connections = Hash.new { |hash, key| hash[key] = [] }
+    NodeConnection.where(source_node_id: @nodes.keys)
+      .pluck(:source_node_id, :target_node_id)
+      .each do |source_id, target_id|
+        connections[source_id] << target_id
+      end
     connections
   end
   
   # Get children of a node, sorted by counter-clockwise angle from midnight
   def get_children(node_id)
-    child_ids = @connections[node_id] || []
-    return [] if child_ids.empty?
-    
-    parent = @nodes[node_id]
-    parent_output = output_anchor_point(parent)
-    
-    children_with_angles = child_ids.map do |child_id|
-      child = @nodes[child_id]
-      child_input = input_anchor_point(child)
-      angle = calculate_angle(parent_output, child_input)
-      [child_id, angle]
-    end
-    
-    # Sort by angle (counter-clockwise from midnight)
-    # Since DOM Y increases downward, we need descending order for CCW
-    children_with_angles.sort_by { |_, angle| -angle }.map(&:first)
-  end
-  
-  # Calculate angle from origin to target, counter-clockwise from midnight
-  # Returns angle in radians [0, 2π)
-  # 0 = midnight (straight up)
-  # Sorting: Descending order gives counter-clockwise progression
-  #   (10 o'clock has larger angle than 9 o'clock, so it comes first)
-  def calculate_angle(origin, target)
-    dx = target[0] - origin[0]
-    dy = target[1] - origin[1]
-    
-    # Flip Y because DOM Y increases downward
-    # This makes angles increase clockwise from midnight
-    # We then sort descending to get counter-clockwise order
-    raw_angle = Math.atan2(dx, -dy)
-    
-    # Normalize to [0, 2π)
-    (raw_angle + 2 * Math::PI) % (2 * Math::PI)
-  end
-  
-  # Default output connector position (right side center)
-  # Override this method for different node types
-  def output_anchor_point(node)
-    [
-      node.position_x + NODE_WIDTH,
-      node.position_y + (NODE_HEIGHT / 2.0)
-    ]
-  end
-  
-  # Default input connector position (left side center)
-  # Override this method for different node types
-  def input_anchor_point(node)
-    [
-      node.position_x,
-      node.position_y + (NODE_HEIGHT / 2.0)
-    ]
+    sort_children(node_id, @nodes, @connections, @node_dimensions)
   end
   
   # Main traversal logic with backtracking
@@ -165,7 +145,7 @@ class NodeTraverser
     return if child_ids.empty?
     
     parent = @nodes[parent_id]
-    parent_output = output_anchor_point(parent)
+    parent_output = output_anchor_point(parent, @node_dimensions)
     
     child_ids.each_with_index do |child_id, index|
       child = @nodes[child_id]
@@ -176,8 +156,9 @@ class NodeTraverser
         raise InfiniteLoopError.new(cycle_path)
       end
       
-      # Calculate angle for this child
-      child_input = input_anchor_point(child)
+      # DEBUG: Calculate angle for logging/display purposes only
+      # This can be commented out later if not needed for debugging
+      child_input = input_anchor_point(child, @node_dimensions)
       angle = calculate_angle(parent_output, child_input)
       @next_sort_order += 1
       
@@ -198,28 +179,6 @@ class NodeTraverser
       @execution_stack << step
       
       if result == true && child.condition?
-        # Continue depth-first with this node's children
-        grandchildren = get_children(child_id)
-        
-        if grandchildren.any?
-          # Check if first grandchild is an action (exception case)
-          first_grandchild = @nodes[grandchildren.first]
-          if first_grandchild&.action?
-            # Exception: condition followed by action = treat as false
-            step.instance_variable_set(:@result, false)
-            # Backtrack to parent's next sibling
-            break
-          else
-            traverse_children(child_id, grandchildren, depth + 1)
-          end
-        else
-          # No children = bottom of chain (exception case)
-          step.instance_variable_set(:@result, false)
-          # Backtrack to parent's next sibling
-          break
-        end
-      elsif result == true && child.root?
-        # Root nodes always continue
         grandchildren = get_children(child_id)
         traverse_children(child_id, grandchildren, depth + 1) if grandchildren.any?
       end
@@ -247,31 +206,12 @@ class NodeTraverser
     )
   end
   
-  # Evaluate node result
-  # NOTE: Returns are stubbed for testing traversal order only.
-  # TODO: Replace with actual condition evaluation against game state.
+  # Evaluate node result using ConditionEvaluator service object
+  # Delegates evaluation logic to separate service for clean separation of concerns
   def evaluate_node_result(node, node_id, depth)
-    if node.condition?
-      # Stubbed: returns true except at chain bottom or before actions.
-      # TODO: Evaluate node.data against board state.
-      children = get_children(node_id)
-      
-      if children.empty?
-        false
-      elsif children.length == 1 && @nodes[children.first]&.action?
-        false
-      else
-        true
-      end
-    elsif node.action?
-      # Actions are terminal - they don't return true/false in the same way
-      # But for traversal purposes, let's say they "execute"
-      :execute
-    elsif node.root? || node.connector?
-      # These are structural, continue traversal
-      true
-    else
-      true
-    end
+    children = get_children(node_id)
+    # TEMPORARY: Pass nodes hash for child type lookup - remove once real evaluation implemented
+    evaluator = ConditionEvaluator.new(node, @nodes, nil)
+    evaluator.evaluate(children)
   end
 end

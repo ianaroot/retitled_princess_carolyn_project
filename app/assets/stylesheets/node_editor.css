@@ -327,6 +327,13 @@
   font-size: 10px;
 }
 
+.node {
+  --connector-input-x: 50%;
+  --connector-input-y: 0px;
+  --connector-output-x: 50%;
+  --connector-output-y: 0px;
+}
+
 .node-connector {
   position: absolute;
   width: 14px;
@@ -339,7 +346,7 @@
 }
 
 .node-connector:hover {
-  transform: translateY(-50%) scale(1.3);
+  transform: translateX(-50%) scale(1.3);
   box-shadow: 0 0 8px rgba(233, 69, 96, 0.8);
 }
 
@@ -352,19 +359,21 @@
 }
 
 .node-connector.input {
-  left: -7px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: var(--connector-input-x);
+  top: var(--connector-input-y);
+  transform: translate(-50%, -50%);
+  margin-top: -7px;
 }
 
 .node-connector.output {
-  right: -7px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: var(--connector-output-x);
+  bottom: var(--connector-output-y);
+  transform: translate(-50%, 50%);
+  margin-bottom: -7px;
 }
 
 .node-connector.output:hover {
-  transform: translateY(-50%) scale(1.3);
+  transform: translate(-50%, 50%) scale(1.3);
 }
 
 .node-editor-panel {

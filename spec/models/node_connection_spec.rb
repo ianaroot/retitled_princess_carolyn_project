@@ -29,6 +29,26 @@ RSpec.describe NodeConnection, type: :model do
       expect(duplicate.errors[:source_node_id]).to include("connection already exists")
     end
 
+    it 'is invalid when source and target are the same node' do
+      node = create(:node)
+      connection = build(:node_connection, source_node: node, target_node: node)
+      
+      expect(connection).not_to be_valid
+      expect(connection.errors[:target_node_id]).to include("cannot connect a node to itself")
+    end
+
+    it 'is invalid when reverse connection already exists' do
+      node_a = create(:node)
+      node_b = create(:node, bot: node_a.bot)
+      create(:node_connection, source_node: node_a, target_node: node_b)
+      
+      # Try to create B -> A when A -> B already exists
+      bidirectional = build(:node_connection, source_node: node_b, target_node: node_a)
+      
+      expect(bidirectional).not_to be_valid
+      expect(bidirectional.errors[:base]).to include("cannot create bidirectional connection (reverse connection already exists)")
+    end
+
     it 'allows multiple connections from the same source to different targets' do
       node1 = create(:node)
       node2 = create(:node, bot: node1.bot)

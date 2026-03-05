@@ -32,10 +32,11 @@
     <div class="canvas-container">
     <div id="nodes-canvas" class="nodes-layer" data-bot-id="<%= @bot.id %>">
       <% (@nodes || @bot.nodes).each do |node| %>
+        <% connector_styles = node_connector_styles(node) %>
         <div class="node <%= node.node_type %>" 
              data-id="<%= node.id %>"
              data-type="<%= node.node_type %>"
-             style="left: <%= node.position_x %>px; top: <%= node.position_y %>px;">
+             style="left: <%= node.position_x %>px; top: <%= node.position_y %>px; <%= connector_styles.map { |k,v| "#{k}:#{v}" }.join(';') %>">
           <div class="node-content">
             <%= render "bots/nodes/preview", node: node %>
           </div>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_03_03_133813) do
+ActiveRecord::Schema[7.1].define(version: 2026_03_04_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -45,9 +45,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_03_03_133813) do
     t.bigint "target_node_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index "LEAST(source_node_id, target_node_id), GREATEST(source_node_id, target_node_id)", name: "idx_no_bidirectional_connections", unique: true
     t.index ["source_node_id", "target_node_id"], name: "index_node_connections_on_source_node_id_and_target_node_id", unique: true
     t.index ["source_node_id"], name: "index_node_connections_on_source_node_id"
     t.index ["target_node_id"], name: "index_node_connections_on_target_node_id"
+    t.check_constraint "source_node_id <> target_node_id", name: "no_self_loops"
   end
 
   create_table "nodes", force: :cascade do |t|
