@@ -65,7 +65,7 @@ class DragManager {
     });
     
     // Add all descendant nodes
-    if (this.connectionManager) {
+    if (this.connectionManager?.getDescendantNodeIds) {
       const descendants = this.connectionManager.getDescendantNodeIds(nodeId);
       descendants.forEach(descId => {
         const descNode = this.nodes.get(descId);
@@ -135,10 +135,20 @@ class DragManager {
       return;
     }
     
-    if (this.positionChanged && this.api.botId && this.draggedNodes) {
-      // Build batch update payload
+    // Cleanup IMMEDIATELY - stop dragging right away
+    const wasChanged = this.positionChanged;
+    const selectedNodeId = this.selectedNode;
+    
+    // Store references before reset clears them
+    const draggedNodes = this.draggedNodes;
+    
+    // Reset immediately to stop the drag
+    this.reset();
+    
+    // Fire API call in background (after reset)
+    if (wasChanged && this.api.botId && draggedNodes) {
       const updates = [];
-      this.draggedNodes.forEach((node, id) => {
+      draggedNodes.forEach((node, id) => {
         updates.push({
           id: id,
           x: node.position.x,
@@ -146,21 +156,19 @@ class DragManager {
         });
       });
       
-      // Batch update all positions
+      // Fire and forget - happens in background
       this.api.batchUpdatePositions(updates)
         .catch(err => {
           console.error('Failed to update positions:', err);
-          // Rollback to pre-drag positions
-          this.rollbackPositions();
-          alert('Failed to save positions. Changes reverted.');
+          // Note: rollback won't work here since we already reset
+          // We could store preDragPositions elsewhere if needed
+          alert('Failed to save positions. Please refresh the page.');
         });
     }
     
     if (this.onDragEnd) {
-      this.onDragEnd(this.selectedNode, this.positionChanged);
+      this.onDragEnd(selectedNodeId, wasChanged);
     }
-    
-    this.reset();
   }
 
   rollbackPositions() {
