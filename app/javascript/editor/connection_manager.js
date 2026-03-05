@@ -65,10 +65,11 @@ function clearConnectorCache(nodeElement) {
 }
 
 class ConnectionManager {
-  constructor(api, nodesMap, screenToCanvas) {
+  constructor(api, nodesMap, screenToCanvas, nodeEditor) {
     this.api = api;
     this.nodes = nodesMap;
     this.screenToCanvas = screenToCanvas;
+    this.nodeEditor = nodeEditor;
     this.connectionsCanvas = document.getElementById('connections-canvas');
     this.nodesCanvas = document.getElementById('nodes-canvas');
     
@@ -199,6 +200,10 @@ class ConnectionManager {
 
   createConnection(sourceId, targetId) {
     if (!this.api.botId) return;
+    
+    if (this.nodeEditor && this.nodeEditor.undoManager) {
+      this.nodeEditor.undoManager.pushState('Create connection');
+    }
     
     this.api.createConnection(sourceId, targetId)
     .then(conn => {
@@ -341,6 +346,10 @@ class ConnectionManager {
     const line = document.querySelector(`line[data-source-id="${sourceId}"][data-target-id="${targetId}"]`);
     const connectionId = line?.dataset.connectionId;
     if (!connectionId) return;
+    
+    if (this.nodeEditor && this.nodeEditor.undoManager) {
+      this.nodeEditor.undoManager.pushState('Delete connection');
+    }
     
     this.api.deleteConnection(sourceId, connectionId)
     .then(() => {

@@ -1,7 +1,8 @@
 class NodeFormHandler {
-  constructor(api, nodesMap) {
+  constructor(api, nodesMap, nodeEditor) {
     this.api = api;
-    this.nodes = nodesMap; // Reference to the map in NodeEditor
+    this.nodes = nodesMap;
+    this.nodeEditor = nodeEditor;
     this.editingNodeId = null;
 
     this.conditionFields = {
@@ -239,6 +240,10 @@ class NodeFormHandler {
 
   saveNode() {
     if (!this.api.botId || !this.editingNodeId) return;
+    
+    if (this.nodeEditor && this.nodeEditor.undoManager) {
+      this.nodeEditor.undoManager.pushState('Update node configuration');
+    }
     
     const typeSpan = document.getElementById('edit-node-type');
     const nodeType = typeSpan.textContent;

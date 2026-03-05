@@ -23,6 +23,16 @@
     </div>
 
     <div class="toolbar-section">
+      <h3>History</h3>
+      <button class="btn-undo" disabled title="Undo (Ctrl+Z)">
+        ↩ Undo <span class="undo-count">(0/25)</span>
+      </button>
+      <button class="btn-redo" disabled title="Redo (Ctrl+Y)">
+        ↪ Redo
+      </button>
+    </div>
+
+    <div class="toolbar-section">
       <%= link_to 'Back to Bots', bots_path, class: 'btn-back' %>
       <%= link_to 'Play Test Game', new_game_path, class: 'btn-test' %>
     </div>

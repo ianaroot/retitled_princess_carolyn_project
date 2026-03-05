@@ -3,6 +3,7 @@ import NodeFormHandler from "editor/form_handler";
 import ConnectionManager from "editor/connection_manager";
 import DragManager from "editor/drag_manager";
 import ZoomManager from "editor/zoom_manager";
+import UndoManager from "editor/undo_manager";
 
 // Positioning constants
 const MIN_NODE_DISTANCE = 120;
@@ -25,9 +26,10 @@ class NodeEditor {
     // Initialize zoom manager
     this.zoomManager = new ZoomManager(this.nodesCanvas, this.connectionsCanvas, this.canvasContainer);
     
-    this.formHandler = new NodeFormHandler(this.api, this.nodes);
-    this.connectionManager = new ConnectionManager(this.api, this.nodes, this.zoomManager.screenToCanvas.bind(this.zoomManager));
+    this.formHandler = new NodeFormHandler(this.api, this.nodes, this);
+    this.connectionManager = new ConnectionManager(this.api, this.nodes, this.zoomManager.screenToCanvas.bind(this.zoomManager), this);
     this.dragManager = new DragManager(this.nodes, this.nodesCanvas, this.api, this.connectionManager, this.zoomManager.screenToCanvas.bind(this.zoomManager));
+    this.undoManager = new UndoManager(this);
     
     // Store bound handlers for cleanup
     this.boundHandleMouseDown = this.handleMouseDown.bind(this);
@@ -37,8 +39,15 @@ class NodeEditor {
       onDragStart: (nodeId) => {
         const node = this.nodes.get(nodeId);
         this.openEditor(nodeId);
+        this.undoManager.pushState('Move nodes');
+      },
+      onDragEnd: () => {
+        // State was captured at drag start
       }
     });
+    
+    // Setup keyboard shortcuts
+    this.setupKeyboardShortcuts();
 
     this.init();
   }
@@ -81,6 +90,15 @@ class NodeEditor {
     // Zoom controls are handled by ZoomManager
 
     document.addEventListener('mousedown', this.boundHandleMouseDown);
+    
+    // Undo/Redo buttons
+    document.querySelector('.btn-undo')?.addEventListener('click', () => {
+      this.undoManager.undo();
+    });
+
+    document.querySelector('.btn-redo')?.addEventListener('click', () => {
+      this.undoManager.redo();
+    });
   }
 
   setTool(tool) {
@@ -164,6 +182,8 @@ class NodeEditor {
     if (!this.botId) return;
     
     if (confirm('Delete this node?')) {
+      this.undoManager.pushState('Delete node');
+      
       this.api.deleteNode(nodeId)
       .then(() => {
         const node = this.nodes.get(nodeId);
@@ -214,6 +234,8 @@ class NodeEditor {
   createNode(nodeType, x, y) {
     if (!this.botId) return;
     
+    this.undoManager.pushState('Create node');
+    
     const nodeData = {
       node_type: nodeType,
       position_x: x,
@@ -260,6 +282,36 @@ class NodeEditor {
     }
     
     return { x, y };
+  }
+  
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          this.undoManager.undo();
+        } else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+          e.preventDefault();
+          this.undoManager.redo();
+        }
+      }
+    });
+  }
+  
+  updateUndoUI() {
+    const undoBtn = document.querySelector('.btn-undo');
+    const redoBtn = document.querySelector('.btn-redo');
+    const countDisplay = document.querySelector('.undo-count');
+    
+    if (undoBtn) {
+      undoBtn.disabled = !this.undoManager.canUndo();
+    }
+    if (redoBtn) {
+      redoBtn.disabled = !this.undoManager.canRedo();
+    }
+    if (countDisplay) {
+      countDisplay.textContent = this.undoManager.getHistoryDisplay();
+    }
   }
   
   // Cleanup method to remove all event listeners
