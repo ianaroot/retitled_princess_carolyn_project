@@ -83,6 +83,51 @@ RSpec.describe Node, type: :model do
       expect(node.node_type).to eq('action')
       expect(node).to be_valid
     end
+
+    it 'can be a root node' do
+      node = build(:node, :root)
+      expect(node.node_type).to eq('root')
+      expect(node).to be_valid
+    end
+  end
+
+  describe 'root node type' do
+    describe '#root? helper' do
+      it 'returns true for root nodes' do
+        node = build(:node, :root)
+        expect(node.root?).to be true
+      end
+
+      it 'returns false for condition nodes' do
+        node = build(:node, :condition)
+        expect(node.root?).to be false
+      end
+
+      it 'returns false for action nodes' do
+        node = build(:node, :action)
+        expect(node.root?).to be false
+      end
+    end
+
+    describe 'uniqueness validation' do
+      it 'prevents creating second root node for same bot' do
+        bot = create(:bot)
+        expect(bot.root_node).to be_present
+
+        second_root = build(:node, :root, bot: bot)
+        expect(second_root).not_to be_valid
+        expect(second_root.errors[:node_type]).to include("bot already has a root node")
+      end
+
+      it 'allows updating existing root node without error' do
+        bot = create(:bot)
+        root = bot.root_node
+
+        root.position_x = 500
+        expect(root).to be_valid
+        expect { root.save! }.not_to raise_error
+      end
+    end
   end
 
   describe 'factory' do
