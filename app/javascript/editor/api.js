@@ -94,6 +94,16 @@ class EditorApi {
     if (!res.ok) throw new Error('Failed to disconnect');
     return true;
   }
+
+  async batchUpdatePositions(nodesData) {
+    const res = await fetch(`${this.baseUrl}/batch_update_positions`, {
+      method: 'POST',
+      headers: this.headers(),
+      body: JSON.stringify({ nodes: nodesData })
+    });
+    if (!res.ok) throw new Error('Failed to update positions');
+    return true;
+  }
 }
 
 export default EditorApi;

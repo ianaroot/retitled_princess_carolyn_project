@@ -356,6 +356,32 @@ class ConnectionManager {
   destroy() {
     this.endConnection();
   }
+
+  // Get all descendant node IDs (children, grandchildren, etc.) from a starting node
+  // Uses BFS to traverse the tree, with visited Set to handle DAG structures safely
+  getDescendantNodeIds(startNodeId) {
+    const descendants = new Set();
+    const queue = [startNodeId];
+    const visited = new Set();
+    
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      if (visited.has(currentId)) continue;
+      visited.add(currentId);
+      
+      // Find all children (targets of outgoing connections)
+      const childLines = this.connectionsCanvas.querySelectorAll(`line[data-source-id="${currentId}"]`);
+      childLines.forEach(line => {
+        const childId = parseInt(line.dataset.targetId);
+        if (childId !== startNodeId && !visited.has(childId)) {
+          descendants.add(childId);
+          queue.push(childId);
+        }
+      });
+    }
+    
+    return descendants;
+  }
 }
 
 export default ConnectionManager;

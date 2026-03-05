@@ -11,6 +11,13 @@ class DragManager {
     this.positionChanged = false;
     this.dragOffset = { x: 0, y: 0 };
     
+    // Parent-child drag tracking
+    this.draggedNodes = null;
+    this.preDragPositions = null;
+    this.dragStartX = 0;
+    this.dragStartY = 0;
+    this.throttleTimer = null;
+    
     this.onDragStart = null;
     this.onDragEnd = null;
     
@@ -32,20 +39,44 @@ class DragManager {
     this.isDragging = true;
     this.positionChanged = false;
     
-    const rect = nodeEl.getBoundingClientRect();
+    // Get initial position for delta calculation
+    const canvasCoords = this.screenToCanvas ? 
+      this.screenToCanvas(e.clientX, e.clientY) : 
+      { x: e.clientX, y: e.clientY };
+    this.dragStartX = canvasCoords.x;
+    this.dragStartY = canvasCoords.y;
     
     // Calculate offset in canvas coordinates (accounting for zoom)
-    if (this.screenToCanvas) {
-      const canvasCoords = this.screenToCanvas(e.clientX, e.clientY);
-      this.dragOffset = {
-        x: canvasCoords.x - parseFloat(nodeEl.style.left),
-        y: canvasCoords.y - parseFloat(nodeEl.style.top)
-      };
-    } else {
-      this.dragOffset = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      };
+    this.dragOffset = {
+      x: canvasCoords.x - parseFloat(nodeEl.style.left),
+      y: canvasCoords.y - parseFloat(nodeEl.style.top)
+    };
+    
+    // Build list of all nodes to drag (parent + descendants)
+    this.draggedNodes = new Map();
+    this.preDragPositions = new Map();
+    
+    // Add the dragged node (parent)
+    const parentNode = this.nodes.get(nodeId);
+    this.draggedNodes.set(nodeId, parentNode);
+    this.preDragPositions.set(nodeId, { 
+      x: parentNode.position.x, 
+      y: parentNode.position.y 
+    });
+    
+    // Add all descendant nodes
+    if (this.connectionManager) {
+      const descendants = this.connectionManager.getDescendantNodeIds(nodeId);
+      descendants.forEach(descId => {
+        const descNode = this.nodes.get(descId);
+        if (descNode) {
+          this.draggedNodes.set(descId, descNode);
+          this.preDragPositions.set(descId, { 
+            x: descNode.position.x, 
+            y: descNode.position.y 
+          });
+        }
+      });
     }
     
     if (this.onDragStart) {
@@ -58,27 +89,41 @@ class DragManager {
   }
 
   handleMouseMove(e) {
-    if (!this.isDragging || !this.selectedNode) return;
+    if (!this.isDragging || !this.selectedNode || !this.draggedNodes) return;
     
-    const node = this.nodes.get(this.selectedNode);
+    // Throttle: skip if timer is active
+    if (this.throttleTimer) return;
     
-    // Convert screen coordinates to canvas coordinates
-    if (this.screenToCanvas) {
-      const canvasCoords = this.screenToCanvas(e.clientX, e.clientY);
-      node.position.x = canvasCoords.x - this.dragOffset.x;
-      node.position.y = canvasCoords.y - this.dragOffset.y;
-    } else {
-      const canvasRect = this.nodesCanvas.getBoundingClientRect();
-      node.position.x = e.clientX - canvasRect.left - this.dragOffset.x;
-      node.position.y = e.clientY - canvasRect.top - this.dragOffset.y;
-    }
+    // Schedule next update
+    this.throttleTimer = requestAnimationFrame(() => {
+      this.throttleTimer = null;
+    });
     
-    node.element.style.left = `${node.position.x}px`;
-    node.element.style.top = `${node.position.y}px`;
+    // Calculate delta from drag start
+    const canvasCoords = this.screenToCanvas ? 
+      this.screenToCanvas(e.clientX, e.clientY) : 
+      { x: e.clientX, y: e.clientY };
+    const deltaX = canvasCoords.x - this.dragStartX;
+    const deltaY = canvasCoords.y - this.dragStartY;
+    
+    // Skip if no movement
+    if (deltaX === 0 && deltaY === 0) return;
     
     this.positionChanged = true;
     
-    // Update connections as we drag
+    // Apply delta to all dragged nodes
+    this.draggedNodes.forEach((node, id) => {
+      const initialPos = this.preDragPositions.get(id);
+      const newX = initialPos.x + deltaX;
+      const newY = initialPos.y + deltaY;
+      
+      node.position.x = newX;
+      node.position.y = newY;
+      node.element.style.left = `${newX}px`;
+      node.element.style.top = `${newY}px`;
+    });
+    
+    // Update connections once for all moved nodes
     if (this.connectionManager) {
       this.connectionManager.updateConnections();
     }
@@ -90,10 +135,25 @@ class DragManager {
       return;
     }
     
-    const node = this.nodes.get(this.selectedNode);
-    if (this.positionChanged && this.api.botId) {
-      this.api.updateNodePosition(this.selectedNode, node.position.x, node.position.y)
-        .catch(err => console.error('Failed to update position:', err));
+    if (this.positionChanged && this.api.botId && this.draggedNodes) {
+      // Build batch update payload
+      const updates = [];
+      this.draggedNodes.forEach((node, id) => {
+        updates.push({
+          id: id,
+          x: node.position.x,
+          y: node.position.y
+        });
+      });
+      
+      // Batch update all positions
+      this.api.batchUpdatePositions(updates)
+        .catch(err => {
+          console.error('Failed to update positions:', err);
+          // Rollback to pre-drag positions
+          this.rollbackPositions();
+          alert('Failed to save positions. Changes reverted.');
+        });
     }
     
     if (this.onDragEnd) {
@@ -103,10 +163,37 @@ class DragManager {
     this.reset();
   }
 
+  rollbackPositions() {
+    if (!this.preDragPositions || !this.draggedNodes) return;
+    
+    this.preDragPositions.forEach((pos, id) => {
+      const node = this.draggedNodes.get(id);
+      if (node) {
+        node.position.x = pos.x;
+        node.position.y = pos.y;
+        node.element.style.left = `${pos.x}px`;
+        node.element.style.top = `${pos.y}px`;
+      }
+    });
+    
+    // Update connections after rollback
+    if (this.connectionManager) {
+      this.connectionManager.updateConnections();
+    }
+  }
+
   reset() {
     this.isDragging = false;
     this.positionChanged = false;
     this.selectedNode = null;
+    this.draggedNodes = null;
+    this.preDragPositions = null;
+    
+    // Cancel any pending throttle timer
+    if (this.throttleTimer) {
+      cancelAnimationFrame(this.throttleTimer);
+      this.throttleTimer = null;
+    }
     
     // Remove document-level listeners
     document.removeEventListener('mousemove', this.boundHandleMouseMove);

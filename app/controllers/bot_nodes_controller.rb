@@ -51,6 +51,24 @@ class BotNodesController < ApplicationController
     end
   end
 
+  def batch_update_positions
+    positions = params[:nodes] || []
+    
+    begin
+      Node.transaction do
+        positions.each do |node_data|
+          node = @bot.nodes.find(node_data[:id])
+          node.update!(position_x: node_data[:x], position_y: node_data[:y])
+        end
+      end
+      head :ok
+    rescue ActiveRecord::RecordNotFound => e
+      render json: { error: "Node not found: #{e.message}" }, status: :not_found
+    rescue ActiveRecord::RecordInvalid => e
+      render json: { error: e.message }, status: :unprocessable_entity
+    end
+  end
+
   def connect
     source_node = @bot.nodes.find(params[:id])
     target_node = @bot.nodes.find(params[:target_id])
