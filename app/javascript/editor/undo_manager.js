@@ -111,7 +111,7 @@ class UndoManager {
   }
 
   canUndo() {
-    return this.currentIndex >= 0;
+    return this.currentIndex > 0;
   }
 
   canRedo() {
@@ -299,8 +299,17 @@ class UndoManager {
     this.nodeEditor.connectionsCanvas.innerHTML = '';
     document.querySelectorAll('.connection-delete-btn').forEach(btn => btn.remove());
 
+    // Render nodes
     state.nodes.forEach(nodeData => {
       this.nodeEditor.renderNode(nodeData);
+    });
+
+    // Re-fetch preview HTML for all nodes with retry logic
+    state.nodes.forEach(nodeData => {
+      const nodeEl = this.nodeEditor.nodes.get(nodeData.id)?.element;
+      if (nodeEl) {
+        this.fetchPreviewWithRetry(nodeEl, nodeData.id, 0);
+      }
     });
 
     state.connections.forEach(conn => {
@@ -313,6 +322,34 @@ class UndoManager {
         );
       }
     });
+  }
+
+  fetchPreviewWithRetry(nodeEl, nodeId, attempt = 0) {
+    const maxAttempts = 3;
+    
+    this.nodeEditor.api.getNodePreviewHtml(nodeId)
+      .then(html => {
+        nodeEl.querySelector('.node-content').innerHTML = html;
+      })
+      .catch(err => {
+        if (attempt < maxAttempts - 1) {
+          // Retry automatically with exponential backoff
+          setTimeout(() => {
+            this.fetchPreviewWithRetry(nodeEl, nodeId, attempt + 1);
+          }, 1000 * (attempt + 1)); // 1s, then 2s
+        } else {
+          // Final failure: show manual retry button
+          nodeEl.querySelector('.node-content').innerHTML = `
+            <div style="color:#c00;font-size:11px;">
+              ⚠️ Preview unavailable<br>
+              <button onclick="window.nodeEditor.retryPreview(${nodeId})" 
+                      style="margin-top:4px;padding:2px 8px;font-size:10px;cursor:pointer;background:#fee;border:1px solid #c00;border-radius:3px;">
+                Retry
+              </button>
+            </div>
+          `;
+        }
+      });
   }
 
   updateUI() {

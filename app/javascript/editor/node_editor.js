@@ -319,6 +319,14 @@ class NodeEditor {
       countDisplay.textContent = this.undoManager.getHistoryDisplay();
     }
   }
+
+  // Retry fetching a node's preview after failed undo/redo
+  retryPreview(nodeId) {
+    const node = this.nodes.get(nodeId);
+    if (node?.element) {
+      this.undoManager.fetchPreviewWithRetry(node.element, nodeId, 0);
+    }
+  }
   
   // Cleanup method to remove all event listeners
   destroy() {
