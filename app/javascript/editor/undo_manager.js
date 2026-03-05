@@ -7,7 +7,7 @@ class UndoManager {
     this.isUndoing = false;
   }
 
-  pushState(description) {
+  pushState(description, batchUpdates = null) {
     if (this.isUndoing) return;
 
     if (this.currentIndex < this.history.length - 1) {
@@ -18,7 +18,8 @@ class UndoManager {
       timestamp: Date.now(),
       description,
       nodes: this.captureNodes(),
-      connections: this.captureConnections()
+      connections: this.captureConnections(),
+      batchUpdates
     };
 
     this.history.push(state);
@@ -32,32 +33,85 @@ class UndoManager {
     this.updateUI();
   }
 
-  undo() {
+  pushDragState(description, preDragPositions, postDragPositions) {
+    if (this.isUndoing) return;
+
+    if (this.currentIndex < this.history.length - 1) {
+      this.history = this.history.slice(0, this.currentIndex + 1);
+    }
+
+    const state = {
+      timestamp: Date.now(),
+      description,
+      nodes: this.captureNodes(),
+      connections: this.captureConnections(),
+      preDragPositions,
+      postDragPositions
+    };
+
+    this.history.push(state);
+    
+    if (this.history.length > this.maxHistory) {
+      this.history.shift();
+    } else {
+      this.currentIndex++;
+    }
+
+    this.updateUI();
+  }
+
+  async undo() {
     if (!this.canUndo()) return;
 
     this.isUndoing = true;
-    this.currentIndex--;
-    const state = this.history[this.currentIndex];
     
-    this.restoreState(state);
+    // Save the state we're undoing FROM (for detecting drag operations)
+    const fromIndex = this.currentIndex;
+    const fromState = this.history[fromIndex];
+    
+    // Move back one step
+    this.currentIndex--;
+    const toState = this.history[this.currentIndex];
+    
+    // Check if we're undoing a drag operation
+    if (fromState.preDragPositions && fromState.preDragPositions.length > 0) {
+      // Drag undo: only revert positions using pre-drag positions
+      await this.nodeEditor.api.batchUpdatePositions(fromState.preDragPositions);
+      this.updateNodePositions(fromState.preDragPositions);
+    } else {
+      // Non-drag undo: full graph restore
+      await this.restoreFullState(toState);
+      this.visualRestore(toState);
+    }
+    
     this.isUndoing = false;
     this.updateUI();
   }
 
-  redo() {
+  async redo() {
     if (!this.canRedo()) return;
 
     this.isUndoing = true;
     this.currentIndex++;
-    const state = this.history[this.currentIndex];
+    const toState = this.history[this.currentIndex];
     
-    this.restoreState(state);
+    // Check if we're redoing to a drag state
+    if (toState.postDragPositions && toState.postDragPositions.length > 0) {
+      // Drag redo: apply post-drag positions
+      await this.nodeEditor.api.batchUpdatePositions(toState.postDragPositions);
+      this.updateNodePositions(toState.postDragPositions);
+    } else {
+      // Non-drag redo: full graph restore
+      await this.restoreFullState(toState);
+      this.visualRestore(toState);
+    }
+    
     this.isUndoing = false;
     this.updateUI();
   }
 
   canUndo() {
-    return this.currentIndex > 0;
+    return this.currentIndex >= 0;
   }
 
   canRedo() {
@@ -65,8 +119,8 @@ class UndoManager {
   }
 
   getHistoryDisplay() {
-    if (this.currentIndex === -1) return 'Undo (0/25)';
-    return `Undo (${this.currentIndex + 1}/${this.history.length})`;
+    if (this.currentIndex === -1) return '(0/25)';
+    return `(${this.currentIndex + 1}/${this.maxHistory})`;
   }
 
   captureNodes() {
@@ -98,11 +152,152 @@ class UndoManager {
     return connections;
   }
 
-  restoreState(state) {
+  async restoreFullState(state) {
+    try {
+      // 1. Sync nodes with server
+      const currentNodeIds = new Set(this.nodeEditor.nodes.keys());
+      const targetNodeIds = new Set(state.nodes.map(n => n.id));
+      
+      // Delete nodes that exist now but not in target state
+      const deletePromises = [];
+      for (const id of currentNodeIds) {
+        if (!targetNodeIds.has(id)) {
+          deletePromises.push(
+            this.nodeEditor.api.deleteNode(id).catch(err => {
+              console.error(`Failed to delete node ${id}:`, err);
+            })
+          );
+        }
+      }
+      await Promise.all(deletePromises);
+      
+      // Create or update nodes
+      const createUpdatePromises = [];
+      for (const node of state.nodes) {
+        if (!currentNodeIds.has(node.id)) {
+          // Create node that exists in target but not now
+          createUpdatePromises.push(
+            this.nodeEditor.api.createNode({
+              node_type: node.node_type,
+              position_x: node.position_x,
+              position_y: node.position_y,
+              data: node.data
+            }).then(created => {
+              // Update the node ID mapping in case server assigns different ID
+              node.id = created.id;
+            }).catch(err => {
+              console.error(`Failed to create node:`, err);
+            })
+          );
+        } else {
+          // Update position if node exists
+          const currentNode = this.nodeEditor.nodes.get(node.id);
+          if (currentNode.position.x !== node.position_x || 
+              currentNode.position.y !== node.position_y) {
+            createUpdatePromises.push(
+              this.nodeEditor.api.updateNodePosition(node.id, node.position_x, node.position_y)
+                .catch(err => {
+                  console.error(`Failed to update position for node ${node.id}:`, err);
+                })
+            );
+          }
+        }
+      }
+      await Promise.all(createUpdatePromises);
+      
+      // 2. Sync connections with server
+      // Get current connections from DOM
+      const currentConnections = new Set();
+      document.querySelectorAll('line[data-connection-id]').forEach(line => {
+        if (line.dataset.connectionId && !line.dataset.connectionId.startsWith('restored-')) {
+          currentConnections.add(`${line.dataset.sourceId}-${line.dataset.targetId}`);
+        }
+      });
+      
+      const targetConnections = new Set();
+      state.connections.forEach(conn => {
+        targetConnections.add(`${conn.source_node_id}-${conn.target_node_id}`);
+      });
+      
+      // Delete connections that exist now but not in target
+      const deleteConnPromises = [];
+      document.querySelectorAll('line[data-connection-id]').forEach(line => {
+        const key = `${line.dataset.sourceId}-${line.dataset.targetId}`;
+        if (!targetConnections.has(key) && line.dataset.connectionId) {
+          deleteConnPromises.push(
+            this.nodeEditor.api.deleteConnection(
+              parseInt(line.dataset.sourceId), 
+              line.dataset.connectionId
+            ).catch(err => {
+              console.error(`Failed to delete connection:`, err);
+            })
+          );
+        }
+      });
+      await Promise.all(deleteConnPromises);
+      
+      // Create connections that exist in target but not now
+      const createConnPromises = [];
+      for (const conn of state.connections) {
+        const key = `${conn.source_node_id}-${conn.target_node_id}`;
+        if (!currentConnections.has(key)) {
+          createConnPromises.push(
+            this.nodeEditor.api.createConnection(conn.source_node_id, conn.target_node_id)
+              .catch(err => {
+                console.error(`Failed to create connection:`, err);
+              })
+          );
+        }
+      }
+      await Promise.all(createConnPromises);
+      
+    } catch (error) {
+      console.error('Undo operation failed:', error);
+      this.showErrorBanner(error);
+    }
+  }
+
+  updateNodePositions(positions) {
+    // Only update visual positions of nodes, don't recreate elements or connections
+    positions.forEach(update => {
+      const node = this.nodeEditor.nodes.get(update.id);
+      if (node) {
+        node.position.x = update.x;
+        node.position.y = update.y;
+        node.element.style.left = `${update.x}px`;
+        node.element.style.top = `${update.y}px`;
+      }
+    });
+    // Update connection lines
+    this.nodeEditor.connectionManager.updateConnections();
+  }
+
+  showErrorBanner(error) {
+    const banner = document.createElement('div');
+    banner.id = 'undo-error-banner';
+    banner.style.cssText = 'position:fixed;bottom:20px;left:20px;right:20px;max-width:600px;margin:0 auto;background:#fee;border:2px solid #c00;color:#c00;padding:15px;z-index:9999;border-radius:5px;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-family:sans-serif;';
+    banner.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <strong style="font-size:16px;">Undo Failed</strong><br>
+          <span style="font-size:13px;">Take a screenshot now, then dismiss</span><br><br>
+          <code style="background:#fff;padding:4px 8px;border-radius:3px;font-size:12px;">${error.message}</code>
+        </div>
+        <button onclick="document.getElementById('undo-error-banner').remove()" style="background:#c00;color:white;border:none;padding:8px 16px;cursor:pointer;border-radius:3px;margin-left:15px;font-weight:bold;">Dismiss</button>
+      </div>
+    `;
+    document.body.appendChild(banner);
+  }
+
+  visualRestore(state) {
     this.nodeEditor.nodes.forEach((node) => {
       node.element.remove();
     });
     this.nodeEditor.nodes.clear();
+
+    // Clear connection visuals to prevent traces
+    this.nodeEditor.connectionsCanvas.innerHTML = '';
+    document.querySelectorAll('.connection-delete-btn').forEach(btn => btn.remove());
 
     state.nodes.forEach(nodeData => {
       this.nodeEditor.renderNode(nodeData);

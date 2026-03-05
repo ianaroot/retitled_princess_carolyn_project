@@ -201,13 +201,13 @@ class ConnectionManager {
   createConnection(sourceId, targetId) {
     if (!this.api.botId) return;
     
-    if (this.nodeEditor && this.nodeEditor.undoManager) {
-      this.nodeEditor.undoManager.pushState('Create connection');
-    }
-    
     this.api.createConnection(sourceId, targetId)
     .then(conn => {
       this.drawConnection(sourceId, targetId, conn.id);
+      // Push state AFTER successful connection
+      if (this.nodeEditor && this.nodeEditor.undoManager) {
+        this.nodeEditor.undoManager.pushState('Create connection');
+      }
     })
     .catch(err => console.error('Connection failed:', err));
   }
@@ -347,16 +347,17 @@ class ConnectionManager {
     const connectionId = line?.dataset.connectionId;
     if (!connectionId) return;
     
-    if (this.nodeEditor && this.nodeEditor.undoManager) {
-      this.nodeEditor.undoManager.pushState('Delete connection');
-    }
-    
     this.api.deleteConnection(sourceId, connectionId)
     .then(() => {
       document.querySelectorAll(
         `line[data-source-id="${sourceId}"][data-target-id="${targetId}"], ` +
         `.connection-delete-btn[data-source-id="${sourceId}"][data-target-id="${targetId}"]`
       ).forEach(el => el.remove());
+      
+      // Push state AFTER successful disconnection
+      if (this.nodeEditor && this.nodeEditor.undoManager) {
+        this.nodeEditor.undoManager.pushState('Delete connection');
+      }
     })
     .catch(err => console.error('Failed to disconnect:', err));
   }

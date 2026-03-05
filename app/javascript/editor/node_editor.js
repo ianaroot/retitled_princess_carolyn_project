@@ -39,10 +39,13 @@ class NodeEditor {
       onDragStart: (nodeId) => {
         const node = this.nodes.get(nodeId);
         this.openEditor(nodeId);
-        this.undoManager.pushState('Move nodes');
+        // State will be captured in onDragEnd after successful API call
       },
-      onDragEnd: () => {
-        // State was captured at drag start
+      onDragEnd: (selectedNodeId, wasChanged, preDragPositions, postDragPositions) => {
+        if (wasChanged && preDragPositions && preDragPositions.length > 0) {
+          // Use pushDragState to capture both pre and post drag positions
+          this.undoManager.pushDragState('Move nodes', preDragPositions, postDragPositions);
+        }
       }
     });
     
@@ -55,6 +58,8 @@ class NodeEditor {
   init() {
     this.loadNodes();
     this.setupEventListeners();
+    // Capture initial state after loading
+    this.undoManager.pushState('Initial state');
     // Center the view on loaded nodes after a brief delay to ensure DOM is ready
     setTimeout(() => this.zoomManager.centerViewOnNodes(this.nodes), 100);
   }
@@ -182,10 +187,11 @@ class NodeEditor {
     if (!this.botId) return;
     
     if (confirm('Delete this node?')) {
-      this.undoManager.pushState('Delete node');
-      
       this.api.deleteNode(nodeId)
       .then(() => {
+        // Push state AFTER successful deletion
+        this.undoManager.pushState('Delete node');
+        
         const node = this.nodes.get(nodeId);
         node.element.remove();
         this.nodes.delete(nodeId);
@@ -234,8 +240,6 @@ class NodeEditor {
   createNode(nodeType, x, y) {
     if (!this.botId) return;
     
-    this.undoManager.pushState('Create node');
-    
     const nodeData = {
       node_type: nodeType,
       position_x: x,
@@ -249,6 +253,8 @@ class NodeEditor {
     this.api.createNode(nodeData)
     .then(node => {
       this.renderNode(node);
+      // Push state AFTER successful creation
+      this.undoManager.pushState('Create node');
     })
     .catch(err => console.error('Failed to create node:', err));
   }

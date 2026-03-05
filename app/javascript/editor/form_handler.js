@@ -241,10 +241,6 @@ class NodeFormHandler {
   saveNode() {
     if (!this.api.botId || !this.editingNodeId) return;
     
-    if (this.nodeEditor && this.nodeEditor.undoManager) {
-      this.nodeEditor.undoManager.pushState('Update node configuration');
-    }
-    
     const typeSpan = document.getElementById('edit-node-type');
     const nodeType = typeSpan.textContent;
     
@@ -307,6 +303,10 @@ class NodeFormHandler {
         });
       }
       this.closeEditor();
+      // Push state AFTER successful update
+      if (this.nodeEditor && this.nodeEditor.undoManager) {
+        this.nodeEditor.undoManager.pushState('Update node configuration');
+      }
     })
     .catch(err => console.error('Failed to save node:', err));
   }

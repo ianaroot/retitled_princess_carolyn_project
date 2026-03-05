@@ -139,6 +139,20 @@ class DragManager {
     const wasChanged = this.positionChanged;
     const selectedNodeId = this.selectedNode;
     
+    // Capture pre-drag and post-drag positions BEFORE reset clears them
+    const preDragPositions = [];
+    const postDragPositions = [];
+    
+    if (this.preDragPositions && this.draggedNodes) {
+      this.preDragPositions.forEach((pos, id) => {
+        preDragPositions.push({ id: id, x: pos.x, y: pos.y });
+        const node = this.draggedNodes.get(id);
+        if (node) {
+          postDragPositions.push({ id: id, x: node.position.x, y: node.position.y });
+        }
+      });
+    }
+    
     // Store references before reset clears them
     const draggedNodes = this.draggedNodes;
     
@@ -160,14 +174,12 @@ class DragManager {
       this.api.batchUpdatePositions(updates)
         .catch(err => {
           console.error('Failed to update positions:', err);
-          // Note: rollback won't work here since we already reset
-          // We could store preDragPositions elsewhere if needed
           alert('Failed to save positions. Please refresh the page.');
         });
     }
     
     if (this.onDragEnd) {
-      this.onDragEnd(selectedNodeId, wasChanged);
+      this.onDragEnd(selectedNodeId, wasChanged, preDragPositions, postDragPositions);
     }
   }
 
@@ -219,6 +231,11 @@ class DragManager {
   // Cleanup method for when editor is destroyed
   destroy() {
     this.reset();
+  }
+
+  // Get pre-drag positions for undo support
+  getPreDragPositions() {
+    return this.preDragPositions;
   }
 }
 
