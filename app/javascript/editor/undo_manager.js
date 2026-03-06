@@ -5,6 +5,9 @@ class UndoManager {
     this.history = [];
     this.currentIndex = -1;
     this.isUndoing = false;
+    
+    // Track ID mappings when nodes are recreated (for connection restoration)
+    this.idMapping = new Map();
   }
 
   pushState(description, batchUpdates = null) {
@@ -154,6 +157,9 @@ class UndoManager {
 
   async restoreFullState(state) {
     try {
+      // Reset ID mappings for this restore operation
+      this.idMapping.clear();
+      
       // 1. Sync nodes with server
       const currentNodeIds = new Set(this.nodeEditor.nodes.keys());
       const targetNodeIds = new Set(state.nodes.map(n => n.id));
@@ -183,8 +189,12 @@ class UndoManager {
               position_y: node.position_y,
               data: node.data
             }).then(created => {
-              // Update the node ID mapping in case server assigns different ID
-              node.id = created.id;
+              // Server may assign new ID when recreating node
+              if (node.id !== created.id) {
+                this.idMapping.set(node.id, created.id);
+                console.log(`UndoManager: Remapped node ${node.id} -> ${created.id}`);
+                node.id = created.id;
+              }
             }).catch(err => {
               console.error(`Failed to create node:`, err);
             })
@@ -239,12 +249,20 @@ class UndoManager {
       // Create connections that exist in target but not now
       const createConnPromises = [];
       for (const conn of state.connections) {
-        const key = `${conn.source_node_id}-${conn.target_node_id}`;
+        // Translate IDs in case nodes were recreated with new IDs
+        const sourceId = this.idMapping.get(conn.source_node_id) || conn.source_node_id;
+        const targetId = this.idMapping.get(conn.target_node_id) || conn.target_node_id;
+        const key = `${sourceId}-${targetId}`;
+
+        // debugging node reconnection error in undo of deletion of connected nodes
+        console.log(`Processing connection: ${conn.source_node_id} -> ${conn.target_node_id}, translated: ${sourceId} -> ${targetId}`);
+        console.log(`Key: ${key}, exists in currentConnections: ${currentConnections.has(key)}`);
+        
         if (!currentConnections.has(key)) {
           createConnPromises.push(
-            this.nodeEditor.api.createConnection(conn.source_node_id, conn.target_node_id)
+            this.nodeEditor.api.createConnection(sourceId, targetId)
               .catch(err => {
-                console.error(`Failed to create connection:`, err);
+                console.error(`Failed to create connection ${sourceId}->${targetId}:`, err);
               })
           );
         }

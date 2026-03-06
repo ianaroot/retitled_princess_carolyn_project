@@ -12,6 +12,11 @@ const MAX_PLACEMENT_ATTEMPTS = 50;
 
 class NodeEditor {
   constructor(canvasId) {
+    console.log('>>> NodeEditor CONSTRUCTOR', new Error().stack);
+    console.log('NodeEditor CONSTRUCTOR called', Date.now(), 'canvas:', canvasId);
+    document.addEventListener('turbo:load', () => {
+      console.log('TURBO:LOAD fired', Date.now());
+    });
     this.canvas = document.getElementById(canvasId);
     this.nodesCanvas = document.getElementById('nodes-canvas');
     this.connectionsCanvas = document.getElementById('connections-canvas');
@@ -56,6 +61,7 @@ class NodeEditor {
   }
 
   init() {
+    console.log('NodeEditor.init() called', Date.now());
     this.loadNodes();
     this.setupEventListeners();
     // Capture initial state after loading
@@ -65,6 +71,7 @@ class NodeEditor {
   }
 
   loadNodes() {
+    console.log('NodeEditor.loadNodes() called', Date.now());
     document.querySelectorAll('.node').forEach(nodeEl => {
       const id = parseInt(nodeEl.dataset.id);
       this.nodes.set(id, {
