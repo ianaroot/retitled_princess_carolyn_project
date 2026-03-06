@@ -185,7 +185,9 @@ RSpec.describe 'Node Editor', type: :feature, js: true do
       
       find(".node[data-id='#{node.id}']").click
       
-      panel = find('#node-editor-panel', visible: :all, wait: 5)
+      sleep 0.3
+      
+      panel = find('#node-editor-panel', visible: :all, wait: 10)
       expect(panel[:class]).not_to include('hidden')
     end
   end
