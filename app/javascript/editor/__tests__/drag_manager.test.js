@@ -161,6 +161,111 @@ describe('DragManager', () => {
     });
   });
 
+  describe('handleMouseUp - position capture', () => {
+    const createMockNode = (id, x, y) => ({
+      element: { 
+        style: { 
+          left: `${x}px`, 
+          top: `${y}px` 
+        } 
+      },
+      position: { x, y }
+    });
+
+    beforeEach(() => {
+      mockApi.botId = 1;
+      mockApi.batchUpdatePositions = vi.fn(() => Promise.resolve(true));
+    });
+
+    it('captures pre-drag and post-drag positions', async () => {
+      const mockOnDragEnd = vi.fn();
+      dragManager.setCallbacks({ onDragEnd: mockOnDragEnd });
+
+      mockNodes.set(1, createMockNode(1, 100, 100));
+      mockConnectionManager.getDescendantNodeIds.mockReturnValue(new Set());
+
+      dragManager.startDrag({ clientX: 150, clientY: 150 }, 1);
+      dragManager.handleMouseMove({ clientX: 250, clientY: 250 });
+      await dragManager.handleMouseUp();
+
+      expect(mockOnDragEnd).toHaveBeenCalledWith(
+        1,
+        true,
+        [{ id: 1, x: 100, y: 100 }],
+        [{ id: 1, x: 200, y: 200 }]
+      );
+    });
+
+    it('captures positions for all dragged nodes including descendants', async () => {
+      const mockOnDragEnd = vi.fn();
+      dragManager.setCallbacks({ onDragEnd: mockOnDragEnd });
+
+      mockNodes.set(1, createMockNode(1, 100, 100));
+      mockNodes.set(2, createMockNode(2, 200, 200));
+      mockNodes.set(3, createMockNode(3, 300, 300));
+      mockConnectionManager.getDescendantNodeIds.mockReturnValue(new Set([2, 3]));
+
+      dragManager.startDrag({ clientX: 150, clientY: 150 }, 1);
+      dragManager.handleMouseMove({ clientX: 200, clientY: 200 });
+      await dragManager.handleMouseUp();
+
+      expect(mockOnDragEnd).toHaveBeenCalledWith(
+        1,
+        true,
+        [
+          { id: 1, x: 100, y: 100 },
+          { id: 2, x: 200, y: 200 },
+          { id: 3, x: 300, y: 300 }
+        ],
+        [
+          { id: 1, x: 150, y: 150 },
+          { id: 2, x: 250, y: 250 },
+          { id: 3, x: 350, y: 350 }
+        ]
+      );
+    });
+
+    it('calls onDragEnd with (nodeId, wasChanged, prePositions, postPositions)', async () => {
+      const mockOnDragEnd = vi.fn();
+      dragManager.setCallbacks({ onDragEnd: mockOnDragEnd });
+
+      mockNodes.set(1, createMockNode(1, 100, 100));
+      mockConnectionManager.getDescendantNodeIds.mockReturnValue(new Set());
+
+      dragManager.startDrag({ clientX: 150, clientY: 150 }, 1);
+      dragManager.handleMouseMove({ clientX: 250, clientY: 250 });
+      await dragManager.handleMouseUp();
+
+      expect(mockOnDragEnd).toHaveBeenCalledTimes(1);
+      const call = mockOnDragEnd.mock.calls[0];
+      expect(call[0]).toBe(1);
+      expect(call[1]).toBe(true);
+      expect(Array.isArray(call[2])).toBe(true);
+      expect(Array.isArray(call[3])).toBe(true);
+      expect(call[2][0]).toHaveProperty('id');
+      expect(call[2][0]).toHaveProperty('x');
+      expect(call[2][0]).toHaveProperty('y');
+    });
+
+    it('passes wasChanged=false when position did not change', async () => {
+      const mockOnDragEnd = vi.fn();
+      dragManager.setCallbacks({ onDragEnd: mockOnDragEnd });
+
+      mockNodes.set(1, createMockNode(1, 100, 100));
+      mockConnectionManager.getDescendantNodeIds.mockReturnValue(new Set());
+
+      dragManager.startDrag({ clientX: 150, clientY: 150 }, 1);
+      await dragManager.handleMouseUp();
+
+      expect(mockOnDragEnd).toHaveBeenCalledWith(
+        1,
+        false,
+        expect.any(Array),
+        expect.any(Array)
+      );
+    });
+  });
+
   describe('coordinate conversion', () => {
     it('should use screenToCanvas when available', () => {
       const nodeEl = {
