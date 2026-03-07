@@ -1,3 +1,5 @@
+import { CONNECTION_STROKE_COLOR } from 'editor/constants';
+
 class UndoManager {
   constructor(nodeEditor, maxHistory = 25) {
     this.nodeEditor = nodeEditor;
@@ -142,7 +144,8 @@ class UndoManager {
 
   captureConnections() {
     const connections = [];
-    const lines = document.querySelectorAll('line[data-source-id]');
+    // Only capture VISIBLE lines (green stroke), not transparent hitArea lines
+    const lines = document.querySelectorAll(`line[data-source-id][stroke="${CONNECTION_STROKE_COLOR}"]`);
     lines.forEach(line => {
       if (line.dataset.connectionId && !line.dataset.connectionId.startsWith('restored-')) {
         connections.push({

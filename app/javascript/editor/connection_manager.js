@@ -2,6 +2,17 @@
 const NODE_WIDTH = 100;
 const NODE_HEIGHT = 60;
 
+import {
+  CONNECTION_STROKE_COLOR,
+  CONNECTION_STROKE_WIDTH,
+  TEMP_LINE_STROKE_COLOR,
+  TEMP_LINE_STROKE_WIDTH,
+  TEMP_LINE_STROKE_DASHARRAY,
+  HITAREA_STROKE_COLOR,
+  HITAREA_STROKE_WIDTH,
+  DELETE_BUTTON_TEXT
+} from 'editor/constants';
+
 // Cache for connector positions (prevents repeated DOM measurements)
 const connectorCache = new WeakMap();
 
@@ -143,9 +154,9 @@ class ConnectionManager {
     this.tempLine.setAttribute('y1', startY);
     this.tempLine.setAttribute('x2', canvasCoords.x);
     this.tempLine.setAttribute('y2', canvasCoords.y);
-    this.tempLine.setAttribute('stroke', '#4CAF50');
-    this.tempLine.setAttribute('stroke-width', '3');
-    this.tempLine.setAttribute('stroke-dasharray', '5,5');
+    this.tempLine.setAttribute('stroke', TEMP_LINE_STROKE_COLOR);
+    this.tempLine.setAttribute('stroke-width', TEMP_LINE_STROKE_WIDTH);
+    this.tempLine.setAttribute('stroke-dasharray', TEMP_LINE_STROKE_DASHARRAY);
     
     this.connectionsCanvas.appendChild(this.tempLine);
   }
@@ -234,8 +245,8 @@ class ConnectionManager {
     hitArea.setAttribute('y1', startY);
     hitArea.setAttribute('x2', endX);
     hitArea.setAttribute('y2', endY);
-    hitArea.setAttribute('stroke', 'transparent');
-    hitArea.setAttribute('stroke-width', '20');
+    hitArea.setAttribute('stroke', HITAREA_STROKE_COLOR);
+    hitArea.setAttribute('stroke-width', HITAREA_STROKE_WIDTH);
     hitArea.style.pointerEvents = 'stroke';
     hitArea.dataset.sourceId = sourceId;
     hitArea.dataset.targetId = targetId;
@@ -245,8 +256,8 @@ class ConnectionManager {
     line.setAttribute('y1', startY);
     line.setAttribute('x2', endX);
     line.setAttribute('y2', endY);
-    line.setAttribute('stroke', '#4CAF50');
-    line.setAttribute('stroke-width', '2');
+    line.setAttribute('stroke', CONNECTION_STROKE_COLOR);
+    line.setAttribute('stroke-width', CONNECTION_STROKE_WIDTH);
     line.style.pointerEvents = 'none';
     line.dataset.sourceId = sourceId;
     line.dataset.targetId = targetId;
@@ -257,7 +268,7 @@ class ConnectionManager {
     
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'connection-delete-btn';
-    deleteBtn.textContent = '×';
+    deleteBtn.textContent = DELETE_BUTTON_TEXT;
     deleteBtn.style.left = `${midX}px`;
     deleteBtn.style.top = `${midY}px`;
     deleteBtn.dataset.sourceId = sourceId;
