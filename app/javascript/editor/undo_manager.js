@@ -311,6 +311,8 @@ class UndoManager {
   }
 
   visualRestore(state) {
+    console.log(`[visualRestore] Called with ${state.nodes.length} nodes and ${state.connections.length} connections`);
+    
     this.nodeEditor.nodes.forEach((node) => {
       node.element.remove();
     });
@@ -319,11 +321,15 @@ class UndoManager {
     // Clear connection visuals to prevent traces
     this.nodeEditor.connectionsCanvas.innerHTML = '';
     document.querySelectorAll('.connection-delete-btn').forEach(btn => btn.remove());
+    console.log(`[visualRestore] Canvas cleared. Lines remaining:`, this.nodeEditor.connectionsCanvas.querySelectorAll('line').length);
 
     // Render nodes
-    state.nodes.forEach(nodeData => {
+    console.log(`[visualRestore] Rendering ${state.nodes.length} nodes...`);
+    state.nodes.forEach((nodeData, index) => {
+      console.log(`[visualRestore] Rendering node ${index}: ID=${nodeData.id}, type=${nodeData.node_type}, pos=(${nodeData.position_x}, ${nodeData.position_y})`);
       this.nodeEditor.renderNode(nodeData);
     });
+    console.log(`[visualRestore] Nodes rendered. Total nodes in Map:`, this.nodeEditor.nodes.size);
 
     // Re-fetch preview HTML for all nodes with retry logic
     state.nodes.forEach(nodeData => {
@@ -333,16 +339,31 @@ class UndoManager {
       }
     });
 
-    state.connections.forEach(conn => {
-      if (this.nodeEditor.nodes.has(conn.source_node_id) && 
-          this.nodeEditor.nodes.has(conn.target_node_id)) {
+    // Render connections
+    console.log(`[visualRestore] Rendering ${state.connections.length} connections...`);
+    state.connections.forEach((conn, index) => {
+      // Translate connection IDs using the mapping (in case nodes were recreated with new IDs)
+      const sourceId = this.idMapping.get(conn.source_node_id) || conn.source_node_id;
+      const targetId = this.idMapping.get(conn.target_node_id) || conn.target_node_id;
+      
+      console.log(`[visualRestore] Processing connection ${index}: ${conn.source_node_id} -> ${conn.target_node_id} (translated: ${sourceId} -> ${targetId}), ID=${conn.connection_id}`);
+      const hasSource = this.nodeEditor.nodes.has(sourceId);
+      const hasTarget = this.nodeEditor.nodes.has(targetId);
+      console.log(`[visualRestore]   Source ${sourceId} exists: ${hasSource}, Target ${targetId} exists: ${hasTarget}`);
+      
+      if (hasSource && hasTarget) {
+        console.log(`[visualRestore]   Calling drawConnection...`);
         this.nodeEditor.connectionManager.drawConnection(
-          conn.source_node_id, 
-          conn.target_node_id,
+          sourceId, 
+          targetId,
           conn.connection_id
         );
+      } else {
+        console.error(`[visualRestore]   SKIPPING: Missing node(s)`);
       }
     });
+    
+    console.log(`[visualRestore] Complete. Total lines in canvas:`, this.nodeEditor.connectionsCanvas.querySelectorAll('line').length);
   }
 
   fetchPreviewWithRetry(nodeEl, nodeId, attempt = 0) {

@@ -224,8 +224,18 @@ class ConnectionManager {
   }
 
   drawConnection(sourceId, targetId, connectionId) {
+    console.log(`[drawConnection] Called: ${sourceId} -> ${targetId}, ID: ${connectionId}`);
+    
     const sourceNode = this.nodes.get(sourceId);
     const targetNode = this.nodes.get(targetId);
+    
+    if (!sourceNode || !targetNode) {
+      console.error(`[drawConnection] Cannot draw: source=${sourceId} exists=${!!sourceNode}, target=${targetId} exists=${!!targetNode}`);
+      return;
+    }
+    
+    console.log(`[drawConnection] Source position:`, sourceNode.position);
+    console.log(`[drawConnection] Target position:`, targetNode.position);
     
     const sourceEl = sourceNode.element;
     const targetEl = targetNode.element;
@@ -237,6 +247,9 @@ class ConnectionManager {
     const startY = parseFloat(sourceEl.style.top) + sourceAnchor.y;
     const endX = parseFloat(targetEl.style.left) + targetAnchor.x;
     const endY = parseFloat(targetEl.style.top) + targetAnchor.y;
+    
+    console.log(`[drawConnection] Coordinates calculated: (${startX}, ${startY}) -> (${endX}, ${endY})`);
+    console.log(`[drawConnection] Anchor offsets - source: (${sourceAnchor.x}, ${sourceAnchor.y}), target: (${targetAnchor.x}, ${targetAnchor.y})`);
     
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -303,6 +316,8 @@ class ConnectionManager {
     this.connectionsCanvas.appendChild(hitArea);
     this.connectionsCanvas.appendChild(line);
     this.nodesCanvas.appendChild(deleteBtn);
+    
+    console.log(`[drawConnection] Line created and appended. Total lines in canvas:`, this.connectionsCanvas.querySelectorAll('line').length);
   }
 
   updateConnections() {
