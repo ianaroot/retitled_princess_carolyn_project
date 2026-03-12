@@ -31,71 +31,43 @@ describe('ConnectionManager', () => {
     connectionManager.connectionsCanvas = mockConnectionsCanvas;
   });
 
-  describe('getDescendantNodeIds', () => {
-    const createMockLine = (sourceId, targetId) => ({
-      dataset: { 
-        sourceId: String(sourceId), 
-        targetId: String(targetId),
-        connectionId: `conn-${sourceId}-${targetId}`
-      }
+  // Helper to add a connection directly to the Map (bypassing drawConnection)
+  const addConnectionToMap = (sourceId, targetId, connectionId = `conn-${sourceId}-${targetId}`) => {
+    connectionManager.connections.set(`${sourceId}-${targetId}`, {
+      sourceId,
+      targetId,
+      connectionId,
+      line: {},
+      hitArea: {},
+      deleteBtn: {}
     });
+  };
 
+  describe('getDescendantNodeIds', () => {
     it('returns empty set for node with no outgoing connections', () => {
-      mockConnectionsCanvas.querySelectorAll.mockImplementation((selector) => {
-        if (selector === 'line[data-source-id="1"]') {
-          return [];
-        }
-        return [];
-      });
-
       const result = connectionManager.getDescendantNodeIds(1);
       expect(result).toEqual(new Set());
     });
 
     it('returns direct children of a node', () => {
-      mockConnectionsCanvas.querySelectorAll.mockImplementation((selector) => {
-        if (selector === 'line[data-source-id="1"]') {
-          return [
-            createMockLine(1, 2),
-            createMockLine(1, 3)
-          ];
-        }
-        if (selector === 'line[data-source-id="2"]') return [];
-        if (selector === 'line[data-source-id="3"]') return [];
-        return [];
-      });
+      addConnectionToMap(1, 2);
+      addConnectionToMap(1, 3);
 
       const result = connectionManager.getDescendantNodeIds(1);
       expect(result).toEqual(new Set([2, 3]));
     });
 
     it('returns all descendants including grandchildren', () => {
-      mockConnectionsCanvas.querySelectorAll.mockImplementation((selector) => {
-        if (selector === 'line[data-source-id="1"]') {
-          return [createMockLine(1, 2)];
-        }
-        if (selector === 'line[data-source-id="2"]') {
-          return [createMockLine(2, 3)];
-        }
-        if (selector === 'line[data-source-id="3"]') return [];
-        return [];
-      });
+      addConnectionToMap(1, 2);
+      addConnectionToMap(2, 3);
 
       const result = connectionManager.getDescendantNodeIds(1);
       expect(result).toEqual(new Set([2, 3]));
     });
 
     it('handles DAG where node has multiple parents', () => {
-      mockConnectionsCanvas.querySelectorAll.mockImplementation((selector) => {
-        if (selector === 'line[data-source-id="1"]') {
-          return [createMockLine(1, 3)];
-        }
-        if (selector === 'line[data-source-id="2"]') {
-          return [createMockLine(2, 3)];
-        }
-        if (selector === 'line[data-source-id="3"]') return [];
-        return [];
-      });
+      addConnectionToMap(1, 3);
+      addConnectionToMap(2, 3);
 
       const fromNode1 = connectionManager.getDescendantNodeIds(1);
       const fromNode2 = connectionManager.getDescendantNodeIds(2);
@@ -105,12 +77,7 @@ describe('ConnectionManager', () => {
     });
 
     it('does not include the start node in results', () => {
-      mockConnectionsCanvas.querySelectorAll.mockImplementation((selector) => {
-        if (selector === 'line[data-source-id="1"]') {
-          return [createMockLine(1, 1)]; // Self-reference
-        }
-        return [];
-      });
+      addConnectionToMap(1, 1); // Self-reference
 
       const result = connectionManager.getDescendantNodeIds(1);
       expect(result).toEqual(new Set());
@@ -123,35 +90,91 @@ describe('ConnectionManager', () => {
       //   2   3
       //  /     \
       // 4       5
-      mockConnectionsCanvas.querySelectorAll.mockImplementation((selector) => {
-        if (selector === 'line[data-source-id="1"]') {
-          return [createMockLine(1, 2), createMockLine(1, 3)];
-        }
-        if (selector === 'line[data-source-id="2"]') {
-          return [createMockLine(2, 4)];
-        }
-        if (selector === 'line[data-source-id="3"]') {
-          return [createMockLine(3, 5)];
-        }
-        if (selector === 'line[data-source-id="4"]') return [];
-        if (selector === 'line[data-source-id="5"]') return [];
-        return [];
-      });
+      addConnectionToMap(1, 2);
+      addConnectionToMap(1, 3);
+      addConnectionToMap(2, 4);
+      addConnectionToMap(3, 5);
 
       const result = connectionManager.getDescendantNodeIds(1);
       expect(result).toEqual(new Set([2, 3, 4, 5]));
     });
 
     it('ignores self-referencing connections', () => {
-      mockConnectionsCanvas.querySelectorAll.mockImplementation((selector) => {
-        if (selector === 'line[data-source-id="1"]') {
-          return [createMockLine(1, 1)];
-        }
-        return [];
-      });
+      addConnectionToMap(1, 1);
 
       const result = connectionManager.getDescendantNodeIds(1);
       expect(result).toEqual(new Set());
+    });
+  });
+
+  describe('removeConnectionsForNode', () => {
+    it('removes connections where node is source', () => {
+      addConnectionToMap(1, 2);
+      addConnectionToMap(1, 3);
+      addConnectionToMap(2, 4);
+
+      connectionManager.removeConnectionsForNode(1);
+
+      expect(connectionManager.connections.has('1-2')).toBe(false);
+      expect(connectionManager.connections.has('1-3')).toBe(false);
+      expect(connectionManager.connections.has('2-4')).toBe(true);
+    });
+
+    it('removes connections where node is target', () => {
+      addConnectionToMap(1, 2);
+      addConnectionToMap(3, 2);
+      addConnectionToMap(2, 4);
+
+      connectionManager.removeConnectionsForNode(2);
+
+      expect(connectionManager.connections.has('1-2')).toBe(false);
+      expect(connectionManager.connections.has('3-2')).toBe(false);
+      expect(connectionManager.connections.has('2-4')).toBe(false);
+    });
+
+    it('handles empty connections Map', () => {
+      connectionManager.removeConnectionsForNode(1);
+      expect(connectionManager.connections.size).toBe(0);
+    });
+  });
+
+  describe('getConnections', () => {
+    it('returns empty array when no connections', () => {
+      expect(connectionManager.getConnections()).toEqual([]);
+    });
+
+    it('returns array of connection objects', () => {
+      addConnectionToMap(1, 2, 'conn-1');
+      addConnectionToMap(3, 4, 'conn-2');
+
+      const connections = connectionManager.getConnections();
+      
+      expect(connections).toHaveLength(2);
+      expect(connections).toContainEqual({
+        source_node_id: 1,
+        target_node_id: 2,
+        connection_id: 'conn-1'
+      });
+      expect(connections).toContainEqual({
+        source_node_id: 3,
+        target_node_id: 4,
+        connection_id: 'conn-2'
+      });
+    });
+  });
+
+  describe('removeConnection', () => {
+    it('removes connection from Map', () => {
+      addConnectionToMap(1, 2);
+
+      connectionManager.removeConnection(1, 2);
+
+      expect(connectionManager.connections.has('1-2')).toBe(false);
+    });
+
+    it('does nothing if connection does not exist', () => {
+      connectionManager.removeConnection(1, 2);
+      expect(connectionManager.connections.size).toBe(0);
     });
   });
 });

@@ -39,7 +39,9 @@ describe('UndoManager', () => {
       },
       connectionManager: {
         drawConnection: vi.fn(),
-        updateConnections: vi.fn()
+        updateConnections: vi.fn(),
+        getConnections: vi.fn().mockReturnValue([]),
+        connections: new Map()
       },
       renderNode: vi.fn((nodeData) => {
         const el = document.createElement('div');

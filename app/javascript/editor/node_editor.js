@@ -34,6 +34,9 @@ class NodeEditor {
     // Store bound handlers for cleanup
     this.boundHandleMouseDown = this.handleMouseDown.bind(this);
     
+    // Store bound handlers for cleanup
+    this.boundHandleMouseDown = this.handleMouseDown.bind(this);
+    
     // Set up drag callbacks
     this.dragManager.setCallbacks({
       onDragStart: (nodeId) => {
