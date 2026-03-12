@@ -93,7 +93,9 @@ class EditorApi {
       method: 'DELETE',
       headers: this.headers()
     });
-    if (!res.ok) throw new Error('Failed to disconnect');
+    if (!res.ok) {
+      throw new Error(`Failed to disconnect (${res.status})`);
+    }
     return true;
   }
 

@@ -208,12 +208,8 @@ class NodeEditor {
         node.element.remove();
         this.nodes.delete(nodeId);
         
-        document.querySelectorAll(
-          `line[data-source-id="${nodeId}"], ` +
-          `line[data-target-id="${nodeId}"], ` +
-          `.connection-delete-btn[data-source-id="${nodeId}"], ` +
-          `.connection-delete-btn[data-target-id="${nodeId}"]`
-        ).forEach(el => el.remove());
+        // Remove all connections involving this node from Map and DOM
+        this.connectionManager.removeConnectionsForNode(nodeId);
       })
       .catch(err => console.error('Failed to delete node:', err));
     }

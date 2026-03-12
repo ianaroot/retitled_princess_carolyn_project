@@ -207,9 +207,10 @@ class NodeFormHandler {
       document.getElementById('cond-details-position').classList.remove('hidden');
     }
     
-    document.getElementById('cond-piece-specific').classList.toggle('hidden', data.piece_filter_type !== 'specific');
-    document.getElementById('cond-piece-negative').classList.toggle('hidden', data.piece_filter_type !== 'negative');
-    document.getElementById('cond-piece-value').classList.toggle('hidden', data.piece_filter_type !== 'value');
+    const pieceFilterType = data.piece_filter_type || 'specific';
+    document.getElementById('cond-piece-specific').classList.toggle('hidden', pieceFilterType !== 'specific');
+    document.getElementById('cond-piece-negative').classList.toggle('hidden', pieceFilterType !== 'negative');
+    document.getElementById('cond-piece-value').classList.toggle('hidden', pieceFilterType !== 'value');
     
     document.getElementById('cond-attacker-specific').classList.toggle('hidden', data.attacker_filter_type !== 'specific');
     document.getElementById('cond-attacker-value').classList.toggle('hidden', data.attacker_filter_type !== 'value');

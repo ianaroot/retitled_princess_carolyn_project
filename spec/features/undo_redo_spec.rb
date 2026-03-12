@@ -435,9 +435,7 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       
       # Change condition context and piece type for more robust property matching
       find('#cond-context').find('option[value="enemies"]').select_option
-      find('#cond-piece-filter-type').select 'Specific piece'
-      page.execute_script("document.getElementById('cond-piece-filter-type').dispatchEvent(new Event('change'))")
-      find('#cond-piece-type').select 'knight'
+      find('#cond-piece-type').select 'Knight'
       click_button 'Save'
       sleep 0.5
       
@@ -527,7 +525,11 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       expect(page).to have_css("line[data-source-id='#{condition_id}'][data-target-id='#{target_node.id}']", visible: :all, wait: 5)
       
       # Verify connection line coordinates are reasonable
-      line = find("line[data-source-id='#{condition_id}'][data-target-id='#{target_node.id}']", visible: :all, wait: 5)
+      # Each connection renders 2 line elements: visible stroke (#4CAF50) + transparent hitarea for mouse events
+      lines = all("line[data-source-id='#{condition_id}'][data-target-id='#{target_node.id}']", visible: :all, wait: 5)
+      expect(lines.count).to eq(2)
+      # Both lines have identical coordinates; we use either one since we only need x1, y1, x2, y2
+      line = lines.first
       expect(line['x1'].to_f).to be > 0
       expect(line['y1'].to_f).to be > 0
       expect(line['x2'].to_f).to be > 0

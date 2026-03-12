@@ -10,6 +10,8 @@ class UndoManager {
     
     // Track ID mappings when nodes are recreated (for connection restoration)
     this.idMapping = new Map();
+    // Track connection ID mappings when connections are recreated
+    this.connectionIdMapping = new Map();
   }
 
   pushState(description, batchUpdates = null) {
@@ -80,9 +82,16 @@ class UndoManager {
     
     // Check if we're undoing a drag operation
     if (fromState.preDragPositions && fromState.preDragPositions.length > 0) {
+      // Translate stale IDs using idMapping (nodes may have been recreated)
+      const translatedPositions = fromState.preDragPositions.map(pos => ({
+        id: this.idMapping.get(pos.id) || pos.id,
+        x: pos.x,
+        y: pos.y
+      }));
+      
       // Drag undo: only revert positions using pre-drag positions
-      await this.nodeEditor.api.batchUpdatePositions(fromState.preDragPositions);
-      this.updateNodePositions(fromState.preDragPositions);
+      await this.nodeEditor.api.batchUpdatePositions(translatedPositions);
+      this.updateNodePositions(translatedPositions);
     } else {
       // Non-drag undo: full graph restore
       await this.restoreFullState(toState);
@@ -102,9 +111,15 @@ class UndoManager {
     
     // Check if we're redoing to a drag state
     if (toState.postDragPositions && toState.postDragPositions.length > 0) {
-      // Drag redo: apply post-drag positions
-      await this.nodeEditor.api.batchUpdatePositions(toState.postDragPositions);
-      this.updateNodePositions(toState.postDragPositions);
+      // Translate stale IDs using idMapping (nodes may have been recreated)
+      const translatedPositions = toState.postDragPositions.map(pos => ({
+        id: this.idMapping.get(pos.id) || pos.id,
+        x: pos.x,
+        y: pos.y
+      }));
+      
+      await this.nodeEditor.api.batchUpdatePositions(translatedPositions);
+      this.updateNodePositions(translatedPositions);
     } else {
       // Non-drag redo: full graph restore
       await this.restoreFullState(toState);
@@ -143,26 +158,11 @@ class UndoManager {
   }
 
   captureConnections() {
-    const connections = [];
-    // Only capture VISIBLE lines (green stroke), not transparent hitArea lines
-    const lines = document.querySelectorAll(`line[data-source-id][stroke="${CONNECTION_STROKE_COLOR}"]`);
-    lines.forEach(line => {
-      if (line.dataset.connectionId && !line.dataset.connectionId.startsWith('restored-')) {
-        connections.push({
-          source_node_id: parseInt(line.dataset.sourceId),
-          target_node_id: parseInt(line.dataset.targetId),
-          connection_id: line.dataset.connectionId
-        });
-      }
-    });
-    return connections;
+    return this.nodeEditor.connectionManager.getConnections();
   }
 
   async restoreFullState(state) {
     try {
-      // Reset ID mappings for this restore operation
-      this.idMapping.clear();
-      
       // 1. Sync nodes with server
       const currentNodeIds = new Set(this.nodeEditor.nodes.keys());
       const targetNodeIds = new Set(state.nodes.map(n => n.id));
@@ -201,48 +201,66 @@ class UndoManager {
               console.error(`Failed to create node:`, err);
             })
           );
-        } else {
-          // Update position if node exists
-          const currentNode = this.nodeEditor.nodes.get(node.id);
-          if (currentNode.position.x !== node.position_x || 
-              currentNode.position.y !== node.position_y) {
-            createUpdatePromises.push(
-              this.nodeEditor.api.updateNodePosition(node.id, node.position_x, node.position_y)
-                .catch(err => {
-                  console.error(`Failed to update position for node ${node.id}:`, err);
-                })
-            );
-          }
-        }
+} else {
+      // Update node if it exists
+      const currentNode = this.nodeEditor.nodes.get(node.id);
+      
+      // Update position if changed
+      if (currentNode.position.x !== node.position_x || 
+          currentNode.position.y !== node.position_y) {
+        createUpdatePromises.push(
+          this.nodeEditor.api.updateNodePosition(node.id, node.position_x, node.position_y)
+            .catch(err => {
+              console.error(`Failed to update position for node ${node.id}:`, err);
+            })
+        );
+      }
+      
+      // Update data if changed
+      const currentDataStr = JSON.stringify(currentNode.data || {});
+      const targetDataStr = JSON.stringify(node.data || {});
+      if (currentDataStr !== targetDataStr) {
+        createUpdatePromises.push(
+          this.nodeEditor.api.updateNode(node.id, node.data)
+            .then(updated => {
+              // Sync local data with server response
+              currentNode.data = updated.data;
+            })
+            .catch(err => {
+              console.error(`Failed to update data for node ${node.id}:`, err);
+            })
+        );
+      }
+    }
       }
       await Promise.all(createUpdatePromises);
       
       // 2. Sync connections with server
-      // Get current connections from DOM
-      const currentConnections = new Set();
-      document.querySelectorAll('line[data-connection-id]').forEach(line => {
-        if (line.dataset.connectionId && !line.dataset.connectionId.startsWith('restored-')) {
-          currentConnections.add(`${line.dataset.sourceId}-${line.dataset.targetId}`);
-        }
-      });
+      // Get current connections from Map (not DOM)
+      const currentConnections = this.nodeEditor.connectionManager.connections;
+      const currentConnectionKeys = new Set(currentConnections.keys());
       
-      const targetConnections = new Set();
+      const targetConnectionKeys = new Set();
       state.connections.forEach(conn => {
-        targetConnections.add(`${conn.source_node_id}-${conn.target_node_id}`);
+        const sourceId = this.idMapping.get(conn.source_node_id) || conn.source_node_id;
+        const targetId = this.idMapping.get(conn.target_node_id) || conn.target_node_id;
+        targetConnectionKeys.add(`${sourceId}-${targetId}`);
       });
       
       // Delete connections that exist now but not in target
       const deleteConnPromises = [];
-      document.querySelectorAll('line[data-connection-id]').forEach(line => {
-        const key = `${line.dataset.sourceId}-${line.dataset.targetId}`;
-        if (!targetConnections.has(key) && line.dataset.connectionId) {
+      currentConnections.forEach((conn, key) => {
+        if (!targetConnectionKeys.has(key)) {
+          // Skip if source or target node won't exist in target state (connection cascade-deleted with node)
+          if (!targetNodeIds.has(conn.sourceId) || !targetNodeIds.has(conn.targetId)) {
+            return;
+          }
+          const mappedConnectionId = this.connectionIdMapping.get(conn.connectionId) || conn.connectionId;
           deleteConnPromises.push(
-            this.nodeEditor.api.deleteConnection(
-              parseInt(line.dataset.sourceId), 
-              line.dataset.connectionId
-            ).catch(err => {
-              console.error(`Failed to delete connection:`, err);
-            })
+            this.nodeEditor.api.deleteConnection(conn.sourceId, mappedConnectionId)
+              .catch(err => {
+                console.error(`Failed to delete connection:`, err);
+              })
           );
         }
       });
@@ -251,14 +269,18 @@ class UndoManager {
       // Create connections that exist in target but not now
       const createConnPromises = [];
       for (const conn of state.connections) {
-        // Translate IDs in case nodes were recreated with new IDs
         const sourceId = this.idMapping.get(conn.source_node_id) || conn.source_node_id;
         const targetId = this.idMapping.get(conn.target_node_id) || conn.target_node_id;
         const key = `${sourceId}-${targetId}`;
 
-        if (!currentConnections.has(key)) {
+        if (!currentConnectionKeys.has(key)) {
           createConnPromises.push(
             this.nodeEditor.api.createConnection(sourceId, targetId)
+              .then(created => {
+                if (conn.connection_id && created.id !== conn.connection_id) {
+                  this.connectionIdMapping.set(conn.connection_id, created.id);
+                }
+              })
               .catch(err => {
                 console.error(`Failed to create connection ${sourceId}->${targetId}:`, err);
               })
@@ -314,6 +336,9 @@ class UndoManager {
     // Clear connection visuals to prevent traces
     this.nodeEditor.connectionsCanvas.innerHTML = '';
     document.querySelectorAll('.connection-delete-btn').forEach(btn => btn.remove());
+    
+    // Clear connections from the Map (will be repopulated by drawConnection calls below)
+    this.nodeEditor.connectionManager.connections.clear();
 
     // Render nodes
     state.nodes.forEach((nodeData) => {
@@ -330,15 +355,17 @@ class UndoManager {
 
     // Render connections
     state.connections.forEach((conn) => {
-      // Translate connection IDs using the mapping (in case nodes were recreated with new IDs)
+      // Translate node IDs using the mapping (in case nodes were recreated with new IDs)
       const sourceId = this.idMapping.get(conn.source_node_id) || conn.source_node_id;
       const targetId = this.idMapping.get(conn.target_node_id) || conn.target_node_id;
+      // Translate connection ID using the mapping (in case connections were recreated)
+      const connectionId = this.connectionIdMapping.get(conn.connection_id) || conn.connection_id;
       
       if (this.nodeEditor.nodes.has(sourceId) && this.nodeEditor.nodes.has(targetId)) {
         this.nodeEditor.connectionManager.drawConnection(
           sourceId, 
           targetId,
-          conn.connection_id
+          connectionId
         );
       }
     });

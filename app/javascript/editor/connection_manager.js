@@ -91,6 +91,9 @@ class ConnectionManager {
     // Track which connectors already have listeners
     this._elementsWithListeners = new WeakMap();
     
+    // Track all connections: Map<`${sourceId}-${targetId}`, { sourceId, targetId, connectionId, line, hitArea, deleteBtn }>
+    this.connections = new Map();
+    
     // Store bound handlers for cleanup
     this.boundHandleMouseMove = this.handleMouseMove.bind(this);
     this.boundHandleMouseUp = this.handleMouseUp.bind(this);
@@ -231,6 +234,9 @@ class ConnectionManager {
       return;
     }
     
+    // Remove any existing connection between these nodes before creating new one
+    this.removeConnection(sourceId, targetId);
+    
     const sourceEl = sourceNode.element;
     const targetEl = targetNode.element;
     
@@ -307,15 +313,42 @@ class ConnectionManager {
     this.connectionsCanvas.appendChild(hitArea);
     this.connectionsCanvas.appendChild(line);
     this.nodesCanvas.appendChild(deleteBtn);
+    
+    // Store connection in map
+    this.connections.set(`${sourceId}-${targetId}`, {
+      sourceId,
+      targetId,
+      connectionId,
+      line,
+      hitArea,
+      deleteBtn
+    });
+  }
+
+  removeConnection(sourceId, targetId) {
+    const key = `${sourceId}-${targetId}`;
+    const conn = this.connections.get(key);
+    if (!conn) return;
+    
+    conn.line.remove();
+    conn.hitArea.remove();
+    conn.deleteBtn.remove();
+    
+    this.connections.delete(key);
+  }
+
+  getConnections() {
+    return Array.from(this.connections.values()).map(conn => ({
+      source_node_id: conn.sourceId,
+      target_node_id: conn.targetId,
+      connection_id: conn.connectionId
+    }));
   }
 
   updateConnections() {
-    this.connectionsCanvas.querySelectorAll('line:not([stroke="transparent"])').forEach(line => {
-      const sourceId = parseInt(line.dataset.sourceId);
-      const targetId = parseInt(line.dataset.targetId);
-      
-      const sourceNode = this.nodes.get(sourceId);
-      const targetNode = this.nodes.get(targetId);
+    this.connections.forEach((conn) => {
+      const sourceNode = this.nodes.get(conn.sourceId);
+      const targetNode = this.nodes.get(conn.targetId);
       
       if (!sourceNode || !targetNode) return;
       
@@ -330,44 +363,33 @@ class ConnectionManager {
       const endX = parseFloat(targetEl.style.left) + targetAnchor.x;
       const endY = parseFloat(targetEl.style.top) + targetAnchor.y;
       
-      line.setAttribute('x1', startX);
-      line.setAttribute('y1', startY);
-      line.setAttribute('x2', endX);
-      line.setAttribute('y2', endY);
+      conn.line.setAttribute('x1', startX);
+      conn.line.setAttribute('y1', startY);
+      conn.line.setAttribute('x2', endX);
+      conn.line.setAttribute('y2', endY);
       
-      // Update hit area (transparent line)
-      const hitArea = this.connectionsCanvas.querySelector(`line[stroke="transparent"][data-source-id="${sourceId}"][data-target-id="${targetId}"]`);
-      if (hitArea) {
-        hitArea.setAttribute('x1', startX);
-        hitArea.setAttribute('y1', startY);
-        hitArea.setAttribute('x2', endX);
-        hitArea.setAttribute('y2', endY);
-      }
+      conn.hitArea.setAttribute('x1', startX);
+      conn.hitArea.setAttribute('y1', startY);
+      conn.hitArea.setAttribute('x2', endX);
+      conn.hitArea.setAttribute('y2', endY);
       
       const midX = (startX + endX) / 2;
       const midY = (startY + endY) / 2;
       
-      const deleteBtn = document.querySelector(`.connection-delete-btn[data-source-id="${sourceId}"][data-target-id="${targetId}"]`);
-      if (deleteBtn) {
-        deleteBtn.style.left = `${midX}px`;
-        deleteBtn.style.top = `${midY}px`;
-      }
+      conn.deleteBtn.style.left = `${midX}px`;
+      conn.deleteBtn.style.top = `${midY}px`;
     });
   }
 
   disconnectNode(sourceId, targetId) {
     if (!this.api.botId) return;
     
-    const line = document.querySelector(`line[data-source-id="${sourceId}"][data-target-id="${targetId}"]`);
-    const connectionId = line?.dataset.connectionId;
-    if (!connectionId) return;
+    const conn = this.connections.get(`${sourceId}-${targetId}`);
+    if (!conn) return;
     
-    this.api.deleteConnection(sourceId, connectionId)
+    this.api.deleteConnection(sourceId, conn.connectionId)
     .then(() => {
-      document.querySelectorAll(
-        `line[data-source-id="${sourceId}"][data-target-id="${targetId}"], ` +
-        `.connection-delete-btn[data-source-id="${sourceId}"][data-target-id="${targetId}"]`
-      ).forEach(el => el.remove());
+      this.removeConnection(sourceId, targetId);
       
       // Push state AFTER successful disconnection
       if (this.nodeEditor && this.nodeEditor.undoManager) {
@@ -380,6 +402,7 @@ class ConnectionManager {
   // Cleanup method for when editor is destroyed
   destroy() {
     this.endConnection();
+    this.connections.clear();
   }
 
   // Get all descendant node IDs (children, grandchildren, etc.) from a starting node
@@ -394,18 +417,29 @@ class ConnectionManager {
       if (visited.has(currentId)) continue;
       visited.add(currentId);
       
-      // Find all children (targets of outgoing connections)
-      const childLines = this.connectionsCanvas.querySelectorAll(`line[data-source-id="${currentId}"]`);
-      childLines.forEach(line => {
-        const childId = parseInt(line.dataset.targetId);
-        if (childId !== startNodeId && !visited.has(childId)) {
-          descendants.add(childId);
-          queue.push(childId);
+      // Find all children (targets of outgoing connections) using Map
+      this.connections.forEach((conn) => {
+        if (conn.sourceId === currentId && conn.targetId !== startNodeId && !visited.has(conn.targetId)) {
+          descendants.add(conn.targetId);
+          queue.push(conn.targetId);
         }
       });
     }
     
     return descendants;
+  }
+  
+  // Remove all connections involving a specific node (used when node is deleted)
+  removeConnectionsForNode(nodeId) {
+    const toRemove = [];
+    this.connections.forEach((conn, key) => {
+      if (conn.sourceId === nodeId || conn.targetId === nodeId) {
+        toRemove.push([conn.sourceId, conn.targetId]);
+      }
+    });
+    toRemove.forEach(([sourceId, targetId]) => {
+      this.removeConnection(sourceId, targetId);
+    });
   }
 }
 
