@@ -33,6 +33,13 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
     expect(page).to have_css('.undo-count', text: "(#{n}/25)", wait: 2)
   end
 
+  # Find a node by its properties rather than ID
+  # NOTE: Could be extracted to a support module if needed elsewhere
+  def find_node_by_properties(bot:, node_type:, position_x:, position_y:, data: {})
+    Node.where(bot: bot, node_type: node_type, position_x: position_x, position_y: position_y)
+        .detect { |n| data.all? { |k, v| n.data[k] == v } }
+  end
+
   describe 'node drag undo', :slow do
     let!(:node) { create(:node, bot: bot, node_type: 'condition', position_x: 100, position_y: 100) }
 
@@ -374,6 +381,28 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       expect(page).to have_css('.node', count: 3, wait: 5)
       expect_history_count(3)
       
+      # Operation 2b: Edit action node to have specific data
+      action_node.click
+      sleep 0.5
+      expect(page).to have_css('#node-editor-panel:not(.hidden)', wait: 5)
+      
+      # Set specific direction and distance
+      find('#action-fields select[name="direction"]').select 'forward'
+      find('#action-fields select[name="distance"]').select '2'
+      click_button 'Save'
+      sleep 0.5
+      
+      # Capture action node properties for later property-based lookups
+      action_node_db = Node.find(action_id)
+      action_node_data = {
+        'action_type' => 'move',
+        'direction' => 'forward',
+        'distance' => '2'
+      }
+      expect(action_node_db.data['direction']).to eq('forward')
+      expect(action_node_db.data['distance']).to eq('2')
+      expect_history_count(4)
+      
       # Operation 3: Connect condition -> action
       source = find(".node[data-id='#{condition_id}'] .node-connector.output", wait: 5)
       target = find(".node[data-id='#{action_id}'] .node-connector.input", wait: 5)
@@ -381,7 +410,7 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       sleep 0.5
       expect(page).to have_css('line[data-source-id]', visible: :all, minimum: 1, wait: 5)
       expect(NodeConnection.where(source_node_id: condition_id, target_node_id: action_id).count).to eq(1)
-      expect_history_count(4)
+      expect_history_count(5)
       
       # Operation 4: Drag condition node (with connected action as child)
       condition_element = find(".node[data-id='#{condition_id}']", wait: 5)
@@ -395,7 +424,7 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       condition_moved_x = condition_node_db.position_x
       condition_moved_y = condition_node_db.position_y
       expect(action_node_db.position_x).not_to eq(100) # Should have moved with parent
-      expect_history_count(5)
+      expect_history_count(6)
       
       # Operation 5: Edit condition node's data
       find(".node[data-id='#{condition_id}']").click
@@ -404,15 +433,23 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       panel = find('#node-editor-panel', visible: :all, wait: 5)
       expect(panel[:class]).not_to include('hidden')
       
-      # Change condition context
+      # Change condition context and piece type for more robust property matching
       find('#cond-context').find('option[value="enemies"]').select_option
+      find('#cond-piece-filter-type').select 'Specific piece'
+      page.execute_script("document.getElementById('cond-piece-filter-type').dispatchEvent(new Event('change'))")
+      find('#cond-piece-type').select 'knight'
       click_button 'Save'
       sleep 0.5
       
-      # Verify data changed in DB
+      # Capture condition node properties for later lookups
       condition_node_db.reload
+      condition_node_data = {
+        'context' => 'enemies',
+        'piece_type' => 'knight'
+      }
       expect(condition_node_db.data['context']).to eq('enemies')
-      expect_history_count(6)
+      expect(condition_node_db.data['piece_type']).to eq('knight')
+      expect_history_count(7)
       
       # Operation 6: Disconnect nodes
       # Use first() in case multiple line elements exist
@@ -427,7 +464,16 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       
       # Verify connection removed from DB
       expect(NodeConnection.where(source_node_id: condition_id, target_node_id: action_id).count).to eq(0)
-      expect_history_count(7)
+      expect_history_count(8)
+      
+      # Capture action node properties at time of deletion (includes drag from operation 4)
+      action_node_db = Node.find(action_id)
+      original_action_data = {
+        position_x: action_node_db.position_x,
+        position_y: action_node_db.position_y,
+        node_type: action_node_db.node_type,
+        data: action_node_data
+      }
       
       # Operation 7: Delete action node
       click_button 'Delete'
@@ -439,7 +485,7 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       # Verify action node removed from DOM and DB
       expect(page).to have_css('.node', count: 2, wait: 5)
       expect(Node.find_by(id: action_id)).to be_nil
-      expect_history_count(8)
+      expect_history_count(9)
       
       # Now undo all 7 operations one by one
       
@@ -447,12 +493,45 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       find('.btn-undo').click
       sleep 0.5
       expect(page).to have_css('.node', count: 3, wait: 5)
-      expect(Node.where(bot: bot, node_type: 'action').count).to eq(1)
+      
+      # Find restored action node by properties (ID may be different)
+      restored_action = find_node_by_properties(
+        bot: bot,
+        node_type: 'action',
+        position_x: original_action_data[:position_x],
+        position_y: original_action_data[:position_y],
+        data: original_action_data[:data]
+      )
+      expect(restored_action).to be_present
+      expect(restored_action.node_type).to eq('action')
+      expect(restored_action.data).to eq(original_action_data[:data])
       
       # Undo 6: Restore connection
       find('.btn-undo').click
       sleep 0.5
-      expect(NodeConnection.where(source_node_id: condition_id, target_node_id: action_id).count).to eq(1)
+      
+      # Find action node by properties (ID may have changed again during full state restore)
+      target_node = find_node_by_properties(
+        bot: bot,
+        node_type: 'action',
+        position_x: original_action_data[:position_x],
+        position_y: original_action_data[:position_y],
+        data: original_action_data[:data]
+      )
+      expect(target_node).to be_present
+      
+      # Verify connection exists in database
+      expect(NodeConnection.where(source_node_id: condition_id, target_node_id: target_node.id).count).to eq(1)
+      
+      # Verify connection line in DOM
+      expect(page).to have_css("line[data-source-id='#{condition_id}'][data-target-id='#{target_node.id}']", visible: :all, wait: 5)
+      
+      # Verify connection line coordinates are reasonable
+      line = find("line[data-source-id='#{condition_id}'][data-target-id='#{target_node.id}']", visible: :all, wait: 5)
+      expect(line['x1'].to_f).to be > 0
+      expect(line['y1'].to_f).to be > 0
+      expect(line['x2'].to_f).to be > 0
+      expect(line['y2'].to_f).to be > 0
       
       # Undo 5: Revert node data edit
       find('.btn-undo').click
@@ -469,26 +548,41 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       # Undo 3: Remove connection
       find('.btn-undo').click
       sleep 0.5
-      expect(NodeConnection.where(source_node_id: condition_id, target_node_id: action_id).count).to eq(0)
+      
+      # Find action node by properties for connection check
+      target_node = find_node_by_properties(
+        bot: bot,
+        node_type: 'action',
+        position_x: original_action_data[:position_x],
+        position_y: original_action_data[:position_y],
+        data: original_action_data[:data]
+      )
+      expect(target_node).to be_present
+      expect(NodeConnection.where(source_node_id: condition_id, target_node_id: target_node.id).count).to eq(0)
       expect(page).to have_css('line[data-source-id]', visible: :all, count: 0, wait: 5)
+      
+      # Undo 2b: Revert action node data
+      find('.btn-undo').click
+      sleep 0.5
+      expect(page).to have_css('.node', count: 3, wait: 5)
       
       # Undo 2: Remove action node
       find('.btn-undo').click
       sleep 0.5
       expect(page).to have_css('.node', count: 2, wait: 5)
-      expect(Node.find_by(id: action_id)).to be_nil
+      expect(Node.where(bot: bot, node_type: 'action').count).to eq(0)
       
       # Undo 1: Remove condition node
       find('.btn-undo').click
       sleep 0.5
       expect(page).to have_css('.node', count: 1, wait: 5)
-      expect(Node.find_by(id: condition_id)).to be_nil
+      expect(Node.where(bot: bot, node_type: 'condition').count).to eq(0)
       expect(Node.where(bot: bot).count).to eq(initial_node_count)
       
       # Back to initial state
       expect_history_count(1)
       
-      # Now redo all 7 operations
+      # Now redo all 8 operations
       
       # Redo 1: Restore condition node
       find('.btn-redo').click
@@ -496,16 +590,42 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       expect(page).to have_css('.node', count: 2, wait: 5)
       expect(Node.where(bot: bot, node_type: 'condition').count).to eq(1)
       
-      # Redo 2: Restore action node
+      # Redo 2: Restore action node (will have new ID)
       find('.btn-redo').click
       sleep 0.5
       expect(page).to have_css('.node', count: 3, wait: 5)
       expect(Node.where(bot: bot, node_type: 'action').count).to eq(1)
       
-      # Redo 3: Restore connection
+      # Redo 2b: Restore action node data
       find('.btn-redo').click
       sleep 0.5
-      expect(NodeConnection.where(source_node_id: condition_id, target_node_id: action_id).count).to eq(1)
+      
+      # Find the action node by properties for subsequent redo steps
+      redo_action = find_node_by_properties(
+        bot: bot,
+        node_type: 'action',
+        position_x: original_action_data[:position_x],
+        position_y: original_action_data[:position_y],
+        data: original_action_data[:data]
+      )
+      expect(redo_action).to be_present
+      expect(redo_action.data['direction']).to eq('forward')
+      expect(redo_action.data['distance']).to eq('2')
+      
+      # Redo 3: Restore connection (to the restored action node)
+      find('.btn-redo').click
+      sleep 0.5
+      
+      # Find action node by properties
+      redo_action = find_node_by_properties(
+        bot: bot,
+        node_type: 'action',
+        position_x: original_action_data[:position_x],
+        position_y: original_action_data[:position_y],
+        data: original_action_data[:data]
+      )
+      expect(redo_action).to be_present
+      expect(NodeConnection.where(source_node_id: condition_id, target_node_id: redo_action.id).count).to eq(1)
       expect(page).to have_css('line[data-source-id]', visible: :all, minimum: 1, wait: 5)
       
       # Redo 4: Restore drag positions
@@ -520,32 +640,41 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       sleep 0.5
       condition_node_db.reload
       expect(condition_node_db.data['context']).to eq('enemies')
+      expect(condition_node_db.data['piece_type']).to eq('knight')
       
-      # Redo 6: Restore connection (re-disconnect... wait, this should be disconnect)
-      # Actually, after redo 5 we should be at the connected state with edited data
-      # Redo 6 disconnects them
+      # Redo 6: Disconnect nodes
       find('.btn-redo').click
       sleep 0.5
-      expect(NodeConnection.where(source_node_id: condition_id, target_node_id: action_id).count).to eq(0)
+      
+      # Find action node by properties
+      redo_action = find_node_by_properties(
+        bot: bot,
+        node_type: 'action',
+        position_x: original_action_data[:position_x],
+        position_y: original_action_data[:position_y],
+        data: original_action_data[:data]
+      )
+      expect(redo_action).to be_present
+      expect(NodeConnection.where(source_node_id: condition_id, target_node_id: redo_action.id).count).to eq(0)
       
       # Redo 7: Delete action node
       find('.btn-redo').click
       sleep 0.5
       expect(page).to have_css('.node', count: 2, wait: 5)
-      expect(Node.find_by(id: action_id)).to be_nil
+      expect(Node.where(bot: bot, node_type: 'action').count).to eq(0)
       
       # Final state should match after all operations
       expect(page).to have_css('.node', count: 2, wait: 5) # Root + condition
-      expect(Node.find_by(id: condition_id)).to be_present
-      expect(Node.find_by(id: action_id)).to be_nil
-      expect(NodeConnection.where(source_node_id: condition_id, target_node_id: action_id).count).to eq(0)
+      expect(Node.where(bot: bot, node_type: 'condition').count).to eq(1)
+      expect(Node.where(bot: bot, node_type: 'action').count).to eq(0)
       
       # Verify condition node has edited data
       condition_node_db.reload
       expect(condition_node_db.data['context']).to eq('enemies')
+      expect(condition_node_db.data['piece_type']).to eq('knight')
       expect(condition_node_db.position_x).to eq(condition_moved_x)
       
-      expect_history_count(8)
+      expect_history_count(9)
     end
   end
 end

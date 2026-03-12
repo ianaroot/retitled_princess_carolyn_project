@@ -295,7 +295,13 @@ class NodeFormHandler {
     
     this.api.updateNode(this.editingNodeId, data)
     .then(node => {
-      const nodeEl = this.nodes.get(node.id)?.element;
+      // Update the node data in the Map
+      const nodeInMap = this.nodes.get(node.id);
+      if (nodeInMap) {
+        nodeInMap.data = node.data;
+      }
+      
+      const nodeEl = nodeInMap?.element;
       if (nodeEl) {
         this.api.getNodePreviewHtml(node.id)
         .then(html => {

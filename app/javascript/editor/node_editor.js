@@ -12,11 +12,6 @@ const MAX_PLACEMENT_ATTEMPTS = 50;
 
 class NodeEditor {
   constructor(canvasId) {
-    console.log('>>> NodeEditor CONSTRUCTOR', new Error().stack);
-    console.log('NodeEditor CONSTRUCTOR called', Date.now(), 'canvas:', canvasId);
-    document.addEventListener('turbo:load', () => {
-      console.log('TURBO:LOAD fired', Date.now());
-    });
     this.canvas = document.getElementById(canvasId);
     this.nodesCanvas = document.getElementById('nodes-canvas');
     this.connectionsCanvas = document.getElementById('connections-canvas');
@@ -61,7 +56,6 @@ class NodeEditor {
   }
 
   init() {
-    console.log('NodeEditor.init() called', Date.now());
     this.loadNodes();
     this.setupEventListeners();
     // Capture initial state after loading
@@ -71,16 +65,26 @@ class NodeEditor {
   }
 
   loadNodes() {
-    console.log('NodeEditor.loadNodes() called', Date.now());
     document.querySelectorAll('.node').forEach(nodeEl => {
       const id = parseInt(nodeEl.dataset.id);
+      
+      // Parse node data from HTML attribute
+      let nodeData = {};
+      try {
+        nodeData = JSON.parse(nodeEl.dataset.data || '{}');
+      } catch (e) {
+        console.warn(`Failed to parse data for node ${id}:`, e);
+        nodeData = {};
+      }
+      
       this.nodes.set(id, {
         element: nodeEl,
         type: nodeEl.dataset.type,
         position: { 
           x: parseFloat(nodeEl.style.left), 
           y: parseFloat(nodeEl.style.top) 
-        }
+        },
+        data: nodeData
       });
     });
     this.connectionManager.loadConnections();
@@ -184,7 +188,8 @@ class NodeEditor {
     this.nodes.set(node.id, {
       element: nodeEl,
       type: node.node_type,
-      position: { x: node.position_x, y: node.position_y }
+      position: { x: node.position_x, y: node.position_y },
+      data: node.data || {}
     });
     
     this.connectionManager.loadConnections();

@@ -27,8 +27,9 @@ class EditorApi {
       headers: this.headers(),
       body: JSON.stringify({ node: nodeData })
     });
+    const result = await res.json();
     if (!res.ok) throw new Error(await res.text());
-    return res.json();
+    return result;
   }
 
   async updateNode(nodeId, data) {
@@ -37,8 +38,9 @@ class EditorApi {
       headers: this.headers(),
       body: JSON.stringify({ node: { data: data } })
     });
+    const result = await res.json();
     if (!res.ok) throw new Error('Failed to update node');
-    return res.json();
+    return result;
   }
 
   async getNodeEditorData(nodeId) {

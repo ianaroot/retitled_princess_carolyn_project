@@ -46,6 +46,7 @@
         <div class="node <%= node.node_type %>" 
              data-id="<%= node.id %>"
              data-type="<%= node.node_type %>"
+             data-data="<%= node.data.to_json %>"
              style="left: <%= node.position_x %>px; top: <%= node.position_y %>px; <%= connector_styles.map { |k,v| "#{k}:#{v}" }.join(';') %>">
           <div class="node-content">
             <%= render "bots/nodes/preview", node: node %>
