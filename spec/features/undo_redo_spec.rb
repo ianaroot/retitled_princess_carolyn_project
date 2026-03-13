@@ -373,6 +373,14 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       expect(page).to have_css('.node', count: 2, wait: 5)
       expect_history_count(2)
       
+      # Capture condition node properties for property-based lookups
+      condition_node_db = Node.find(condition_id)
+      condition_initial_position = {
+        x: condition_node_db.position_x,
+        y: condition_node_db.position_y
+      }
+      condition_initial_data = {}  # condition starts with default/empty data
+      
       # Operation 2: Create action node
       click_button '+ Action'
       sleep 0.5
@@ -423,6 +431,7 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       expect(condition_node_db.position_x).not_to eq(100) # Should have moved
       condition_moved_x = condition_node_db.position_x
       condition_moved_y = condition_node_db.position_y
+      condition_dragged_position = { x: condition_moved_x, y: condition_moved_y }
       expect(action_node_db.position_x).not_to eq(100) # Should have moved with parent
       expect_history_count(6)
       
@@ -441,10 +450,12 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       
       # Capture condition node properties for later lookups
       condition_node_db.reload
-      condition_node_data = {
+      condition_edited_data = {
         'context' => 'enemies',
         'piece_type' => 'knight'
       }
+      # Track current condition data through undo/redo
+      condition_current_data = condition_edited_data.dup
       expect(condition_node_db.data['context']).to eq('enemies')
       expect(condition_node_db.data['piece_type']).to eq('knight')
       expect_history_count(7)
@@ -508,6 +519,16 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       find('.btn-undo').click
       sleep 0.5
       
+      # At this point: condition is at dragged position with edited data
+      condition_before_undo5 = find_node_by_properties(
+        bot: bot,
+        node_type: 'condition',
+        position_x: condition_dragged_position[:x],
+        position_y: condition_dragged_position[:y],
+        data: condition_edited_data
+      )
+      expect(condition_before_undo5).to be_present
+      
       # Find action node by properties (ID may have changed again during full state restore)
       target_node = find_node_by_properties(
         bot: bot,
@@ -519,14 +540,14 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       expect(target_node).to be_present
       
       # Verify connection exists in database
-      expect(NodeConnection.where(source_node_id: condition_id, target_node_id: target_node.id).count).to eq(1)
+      expect(NodeConnection.where(source_node_id: condition_before_undo5.id, target_node_id: target_node.id).count).to eq(1)
       
       # Verify connection line in DOM
-      expect(page).to have_css("line[data-source-id='#{condition_id}'][data-target-id='#{target_node.id}']", visible: :all, wait: 5)
+      expect(page).to have_css("line[data-source-id='#{condition_before_undo5.id}'][data-target-id='#{target_node.id}']", visible: :all, wait: 5)
       
       # Verify connection line coordinates are reasonable
       # Each connection renders 2 line elements: visible stroke (#4CAF50) + transparent hitarea for mouse events
-      lines = all("line[data-source-id='#{condition_id}'][data-target-id='#{target_node.id}']", visible: :all, wait: 5)
+      lines = all("line[data-source-id='#{condition_before_undo5.id}'][data-target-id='#{target_node.id}']", visible: :all, wait: 5)
       expect(lines.count).to eq(2)
       # Both lines have identical coordinates; we use either one since we only need x1, y1, x2, y2
       line = lines.first
@@ -540,6 +561,8 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       sleep 0.5
       condition_node_db.reload
       expect(condition_node_db.data['context']).not_to eq('enemies') # Should revert
+      # Condition data reverted to default
+      condition_current_data = {}
       
       # Undo 4: Revert drag positions
       find('.btn-undo').click
@@ -547,20 +570,53 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       condition_node_db.reload
       expect(condition_node_db.position_x).not_to eq(condition_moved_x) # Should revert
       
+      # Condition position reverted to initial
+      condition_current_position = {
+        x: condition_initial_position[:x],
+        y: condition_initial_position[:y]
+      }
+      
+      # Capture action position after drag undo (position reverted to original)
+      action_after_drag_undo = Node.find_by(bot: bot, node_type: 'action')
+      action_position_before_drag_undo = {
+        x: action_after_drag_undo.position_x,
+        y: action_after_drag_undo.position_y
+      }
+      
+      # Find condition by properties for connection check
+      current_condition = find_node_by_properties(
+        bot: bot,
+        node_type: 'condition',
+        position_x: condition_current_position[:x],
+        position_y: condition_current_position[:y],
+        data: condition_current_data
+      )
+      expect(current_condition).to be_present
+      
       # Undo 3: Remove connection
       find('.btn-undo').click
       sleep 0.5
+      
+      # Re-find condition (IDs change during non-drag undo/redo operations)
+      current_condition = find_node_by_properties(
+        bot: bot,
+        node_type: 'condition',
+        position_x: condition_current_position[:x],
+        position_y: condition_current_position[:y],
+        data: condition_current_data
+      )
+      expect(current_condition).to be_present
       
       # Find action node by properties for connection check
       target_node = find_node_by_properties(
         bot: bot,
         node_type: 'action',
-        position_x: original_action_data[:position_x],
-        position_y: original_action_data[:position_y],
+        position_x: action_position_before_drag_undo[:x],
+        position_y: action_position_before_drag_undo[:y],
         data: original_action_data[:data]
       )
       expect(target_node).to be_present
-      expect(NodeConnection.where(source_node_id: condition_id, target_node_id: target_node.id).count).to eq(0)
+      expect(NodeConnection.where(source_node_id: current_condition.id, target_node_id: target_node.id).count).to eq(0)
       expect(page).to have_css('line[data-source-id]', visible: :all, count: 0, wait: 5)
       
       # Undo 2b: Revert action node data
@@ -592,11 +648,35 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       expect(page).to have_css('.node', count: 2, wait: 5)
       expect(Node.where(bot: bot, node_type: 'condition').count).to eq(1)
       
+      # Find condition by properties (ID may have changed after redo)
+      current_condition = find_node_by_properties(
+        bot: bot,
+        node_type: 'condition',
+        position_x: condition_initial_position[:x],
+        position_y: condition_initial_position[:y],
+        data: {}  # default data at this point
+      )
+      expect(current_condition).to be_present
+      
+      # Reset condition tracking for redo phase
+      condition_current_position = {
+        x: current_condition.position_x,
+        y: current_condition.position_y
+      }
+      condition_current_data = {}
+      
       # Redo 2: Restore action node (will have new ID)
       find('.btn-redo').click
       sleep 0.5
       expect(page).to have_css('.node', count: 3, wait: 5)
       expect(Node.where(bot: bot, node_type: 'action').count).to eq(1)
+      
+      # Capture action position before drag is re-applied (at original position)
+      action_before_drag_redo = Node.find_by(bot: bot, node_type: 'action')
+      action_position_before_drag_redo = {
+        x: action_before_drag_redo.position_x,
+        y: action_before_drag_redo.position_y
+      }
       
       # Redo 2b: Restore action node data
       find('.btn-redo').click
@@ -606,8 +686,8 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       redo_action = find_node_by_properties(
         bot: bot,
         node_type: 'action',
-        position_x: original_action_data[:position_x],
-        position_y: original_action_data[:position_y],
+        position_x: action_position_before_drag_redo[:x],
+        position_y: action_position_before_drag_redo[:y],
         data: original_action_data[:data]
       )
       expect(redo_action).to be_present
@@ -618,46 +698,97 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       find('.btn-redo').click
       sleep 0.5
       
-      # Find action node by properties
+      # Re-find condition and action (IDs change during non-drag redo operations)
+      current_condition = find_node_by_properties(
+        bot: bot,
+        node_type: 'condition',
+        position_x: condition_current_position[:x],
+        position_y: condition_current_position[:y],
+        data: condition_current_data
+      )
+      expect(current_condition).to be_present
+      
       redo_action = find_node_by_properties(
         bot: bot,
         node_type: 'action',
-        position_x: original_action_data[:position_x],
-        position_y: original_action_data[:position_y],
+        position_x: action_position_before_drag_redo[:x],
+        position_y: action_position_before_drag_redo[:y],
         data: original_action_data[:data]
       )
       expect(redo_action).to be_present
-      expect(NodeConnection.where(source_node_id: condition_id, target_node_id: redo_action.id).count).to eq(1)
+      
+      expect(NodeConnection.where(source_node_id: current_condition.id, target_node_id: redo_action.id).count).to eq(1)
       expect(page).to have_css('line[data-source-id]', visible: :all, minimum: 1, wait: 5)
       
       # Redo 4: Restore drag positions
       find('.btn-redo').click
       sleep 0.5
-      condition_node_db.reload
-      expect(condition_node_db.position_x).to eq(condition_moved_x)
-      expect(condition_node_db.position_y).to eq(condition_moved_y)
+      
+      # Condition position updated after drag redo
+      condition_current_position = {
+        x: condition_dragged_position[:x],
+        y: condition_dragged_position[:y]
+      }
+      
+      # Verify condition moved
+      current_condition = find_node_by_properties(
+        bot: bot,
+        node_type: 'condition',
+        position_x: condition_current_position[:x],
+        position_y: condition_current_position[:y],
+        data: condition_current_data
+      )
+      expect(current_condition.position_x).to eq(condition_moved_x)
+      expect(current_condition.position_y).to eq(condition_moved_y)
+      
+      # Capture action position after drag is re-applied (at dragged position)
+      action_after_drag_redo = Node.find_by(bot: bot, node_type: 'action')
+      action_position_after_drag_redo = {
+        x: action_after_drag_redo.position_x,
+        y: action_after_drag_redo.position_y
+      }
       
       # Redo 5: Restore data edit
       find('.btn-redo').click
       sleep 0.5
-      condition_node_db.reload
-      expect(condition_node_db.data['context']).to eq('enemies')
-      expect(condition_node_db.data['piece_type']).to eq('knight')
+      
+      # Condition data updated after data edit redo
+      condition_current_data = condition_edited_data.dup
+      
+      # Verify condition has edited data
+      current_condition = find_node_by_properties(
+        bot: bot,
+        node_type: 'condition',
+        position_x: condition_current_position[:x],
+        position_y: condition_current_position[:y],
+        data: condition_current_data
+      )
+      expect(current_condition.data['context']).to eq('enemies')
+      expect(current_condition.data['piece_type']).to eq('knight')
       
       # Redo 6: Disconnect nodes
       find('.btn-redo').click
       sleep 0.5
       
-      # Find action node by properties
+      # Re-find condition and action (IDs change during non-drag redo operations)
+      current_condition = find_node_by_properties(
+        bot: bot,
+        node_type: 'condition',
+        position_x: condition_current_position[:x],
+        position_y: condition_current_position[:y],
+        data: condition_current_data
+      )
+      expect(current_condition).to be_present
+      
       redo_action = find_node_by_properties(
         bot: bot,
         node_type: 'action',
-        position_x: original_action_data[:position_x],
-        position_y: original_action_data[:position_y],
+        position_x: action_position_after_drag_redo[:x],
+        position_y: action_position_after_drag_redo[:y],
         data: original_action_data[:data]
       )
       expect(redo_action).to be_present
-      expect(NodeConnection.where(source_node_id: condition_id, target_node_id: redo_action.id).count).to eq(0)
+      expect(NodeConnection.where(source_node_id: current_condition.id, target_node_id: redo_action.id).count).to eq(0)
       
       # Redo 7: Delete action node
       find('.btn-redo').click
@@ -670,11 +801,17 @@ RSpec.describe 'Undo/Redo', type: :feature, js: true do
       expect(Node.where(bot: bot, node_type: 'condition').count).to eq(1)
       expect(Node.where(bot: bot, node_type: 'action').count).to eq(0)
       
-      # Verify condition node has edited data
-      condition_node_db.reload
-      expect(condition_node_db.data['context']).to eq('enemies')
-      expect(condition_node_db.data['piece_type']).to eq('knight')
-      expect(condition_node_db.position_x).to eq(condition_moved_x)
+      # Verify condition node has edited data and dragged position
+      final_condition = find_node_by_properties(
+        bot: bot,
+        node_type: 'condition',
+        position_x: condition_current_position[:x],
+        position_y: condition_current_position[:y],
+        data: condition_current_data
+      )
+      expect(final_condition.data['context']).to eq('enemies')
+      expect(final_condition.data['piece_type']).to eq('knight')
+      expect(final_condition.position_x).to eq(condition_moved_x)
       
       expect_history_count(9)
     end
