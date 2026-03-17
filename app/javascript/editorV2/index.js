@@ -1,0 +1,180 @@
+// index.js
+// Entry point for editorV2
+// Wires together all components with explicit dependency injection
+
+import Store from './state/Store.js'
+import History from './state/History.js'
+import API from './api.js'
+import SyncManager from './sync/SyncManager.js'
+import NodeRenderer from './rendering/NodeRenderer.js'
+import ConnectionRenderer from './rendering/ConnectionRenderer.js'
+import DragHandler from './handlers/DragHandler.js'
+import ConnectionHandler from './handlers/ConnectionHandler.js'
+import ClickHandler from './handlers/ClickHandler.js'
+import KeyboardHandler from './handlers/KeyboardHandler.js'
+import { MAX_HISTORY } from './constants.js'
+import { showError } from './utils/errors.js'
+
+/**
+ * Initialize the node editor
+ * @param {number} botId - Bot ID to load
+ * @param {HTMLElement} container - Container element for nodes
+ * @param {SVGSVGElement} svgContainer - SVG element for connections
+ * @param {HTMLElement} editorPanel - Editor panel element (optional)
+ * @returns {Promise<Object>} API for external access
+ */
+export async function initEditor(botId, container, svgContainer, editorPanel = null) {
+  console.log('Initializing editorV2 for bot', botId)
+  
+  // Validate required elements
+  if (!container) {
+    throw new Error('Container element is required')
+  }
+  if (!svgContainer) {
+    throw new Error('SVG container element is required')
+  }
+  
+  // 1. Initialize core components (explicit dependencies, no circular refs)
+  const api = new API(botId)
+  const store = new Store()
+  const history = new History(store, MAX_HISTORY)
+  const syncManager = new SyncManager(store, history, api)
+  
+  // 2. Load existing bot data
+  let initialGraph
+  try {
+    initialGraph = await syncManager.loadBot()
+    console.log(`Loaded ${initialGraph.nodes.size} nodes and ${initialGraph.connections.size} connections`)
+  } catch (error) {
+    showError('Failed to load bot data. Please refresh the page.')
+    console.error('Failed to load bot:', error)
+    throw error
+  }
+  
+  // 3. Initialize renderers
+  const nodeRenderer = new NodeRenderer(container, store, api)
+  const connectionRenderer = new ConnectionRenderer(svgContainer, store)
+  
+  // Store reference to container for connection positioning
+  connectionRenderer.container = container
+  
+  // 4. Initialize handlers (pass history explicitly)
+  const dragHandler = new DragHandler(store, syncManager, history)
+  const connectionHandler = new ConnectionHandler(store, syncManager, connectionRenderer)
+  const clickHandler = new ClickHandler(store, history, editorPanel)
+  const keyboardHandler = new KeyboardHandler(store, history, syncManager)
+  
+  // Set syncManager on clickHandler for delete
+  clickHandler.setSyncManager(syncManager)
+  
+  // Setup click handler global handlers
+  clickHandler.setupGlobalHandlers()
+  
+  // Setup keyboard handler
+  keyboardHandler.attach()
+  
+  // Setup connection delete handler
+  const nodesCanvas = container.closest('.nodes-layer') || container
+  connectionHandler.setupDeleteHandler(nodesCanvas)
+  
+  // 5. Attach handlers to initial nodes
+  initialGraph.nodes.forEach((node, clientId) => {
+    // Wait for DOM to be ready
+    setTimeout(() => {
+      const element = container.querySelector(`[data-client-id="${clientId}"]`)
+      if (element) {
+        dragHandler.attach(element, clientId)
+        connectionHandler.attach(element, clientId)
+        clickHandler.attach(element, clientId)
+      }
+    }, 0)
+  })
+  
+  // 6. Subscribe to new nodes to attach handlers
+  store.subscribe((event, data) => {
+    if (event === 'node:add' || event === 'node:update') {
+      // Wait for DOM to be updated by NodeRenderer
+      setTimeout(() => {
+        const element = container.querySelector(`[data-client-id="${data.clientId}"]`)
+        if (element) {
+          dragHandler.attach(element, data.clientId)
+          connectionHandler.attach(element, data.clientId)
+          clickHandler.attach(element, data.clientId)
+        }
+      }, 0)
+    }
+  })
+  
+  // 7. Initialize undo/redo UI callback
+  history.setUpdateUICallback(() => {
+    updateUndoRedoUI(history)
+  })
+  
+  // Initial UI update
+  updateUndoRedoUI(history)
+  
+  // 8. Return public API
+  return {
+    store,
+    history,
+    syncManager,
+    api,
+    nodeRenderer,
+    connectionRenderer,
+    dragHandler,
+    connectionHandler,
+    clickHandler,
+    keyboardHandler,
+    
+    // Convenience methods
+    createNode: (type, position, data) => syncManager.createNode(type, position, data),
+    deleteNode: (clientId) => syncManager.deleteNode(clientId),
+    createConnection: (sourceId, targetId) => syncManager.createConnection(sourceId, targetId),
+    deleteConnection: (clientId) => syncManager.deleteConnection(clientId),
+    updateNodeData: (clientId, data) => syncManager.updateNodeData(clientId, data),
+    
+    undo: () => history.undo(),
+    redo: () => history.redo(),
+    canUndo: () => history.canUndo(),
+    canRedo: () => history.canRedo(),
+    
+    // Selection
+    getSelectedNode: () => clickHandler.getSelectedNodeId(),
+    getEditingNode: () => clickHandler.getEditingNodeId(),
+    
+    // Cleanup
+    destroy: () => {
+      nodeRenderer.destroy()
+      connectionRenderer.destroy()
+      dragHandler.destroy()
+      connectionHandler.destroy()
+      clickHandler.destroy()
+      keyboardHandler.destroy()
+    }
+  }
+}
+
+/**
+ * Update undo/redo button UI
+ * @param {History} history - History instance
+ */
+function updateUndoRedoUI(history) {
+  const undoBtn = document.querySelector('.btn-undo')
+  const redoBtn = document.querySelector('.btn-redo')
+  const countDisplay = document.querySelector('.undo-count')
+  
+  if (undoBtn) {
+    undoBtn.disabled = !history.canUndo()
+  }
+  if (redoBtn) {
+    redoBtn.disabled = !history.canRedo()
+  }
+  if (countDisplay) {
+    countDisplay.textContent = history.getHistoryDisplay()
+  }
+}
+
+// Expose globally for Rails views
+window.initEditor = initEditor
+
+console.log('editorV2 loaded')
