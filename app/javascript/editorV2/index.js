@@ -40,7 +40,12 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
   const history = new History(store, MAX_HISTORY)
   const syncManager = new SyncManager(store, history, api)
   
-  // 2. Load existing bot data
+  // 2. Initialize renderers BEFORE loading data (so they receive GRAPH_REPLACE event)
+  const nodeRenderer = new NodeRenderer(container, store, api)
+  const connectionRenderer = new ConnectionRenderer(svgContainer, store)
+  connectionRenderer.container = container
+  
+  // 3. Load existing bot data
   let initialGraph
   try {
     initialGraph = await syncManager.loadBot()
@@ -50,13 +55,6 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
     console.error('Failed to load bot:', error)
     throw error
   }
-  
-  // 3. Initialize renderers
-  const nodeRenderer = new NodeRenderer(container, store, api)
-  const connectionRenderer = new ConnectionRenderer(svgContainer, store)
-  
-  // Store reference to container for connection positioning
-  connectionRenderer.container = container
   
   // 4. Initialize handlers (pass history explicitly)
   const dragHandler = new DragHandler(store, syncManager, history)
@@ -77,9 +75,8 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
   const nodesCanvas = container.closest('.nodes-layer') || container
   connectionHandler.setupDeleteHandler(nodesCanvas)
   
-  // 5. Attach handlers to initial nodes
+  // 5. Attach handlers to initial nodes (rendered by NodeRenderer during loadBot)
   initialGraph.nodes.forEach((node, clientId) => {
-    // Wait for DOM to be ready
     setTimeout(() => {
       const element = container.querySelector(`[data-client-id="${clientId}"]`)
       if (element) {
@@ -93,7 +90,6 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
   // 6. Subscribe to new nodes to attach handlers
   store.subscribe((event, data) => {
     if (event === 'node:add' || event === 'node:update') {
-      // Wait for DOM to be updated by NodeRenderer
       setTimeout(() => {
         const element = container.querySelector(`[data-client-id="${data.clientId}"]`)
         if (element) {
@@ -110,7 +106,6 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
     updateUndoRedoUI(history)
   })
   
-  // Initial UI update
   updateUndoRedoUI(history)
   
   // 8. Return public API

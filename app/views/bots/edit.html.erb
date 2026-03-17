@@ -25,7 +25,7 @@
     <div class="toolbar-section">
       <h3>History</h3>
       <button class="btn-undo" disabled title="Undo (Ctrl+Z)">
-        ↩ Undo <span class="undo-count">(0/25)</span>
+        ↩ Undo <span class="undo-count">(0/50)</span>
       </button>
       <button class="btn-redo" disabled title="Redo (Ctrl+Y)">
         ↪ Redo
@@ -40,24 +40,36 @@
 
   <div class="editor-main">
     <div class="canvas-container">
-    <div id="nodes-canvas" class="nodes-layer" data-bot-id="<%= @bot.id %>">
-      <% (@nodes || @bot.nodes).each do |node| %>
-        <% connector_styles = node_connector_styles(node) %>
-        <div class="node <%= node.node_type %>" 
-             data-id="<%= node.id %>"
-             data-type="<%= node.node_type %>"
-             data-data="<%= node.data.to_json %>"
-             style="left: <%= node.position_x %>px; top: <%= node.position_y %>px; <%= connector_styles.map { |k,v| "#{k}:#{v}" }.join(';') %>">
-          <div class="node-content">
-            <%= render "bots/nodes/preview", node: node %>
-          </div>
-          <div class="node-connector input"></div>
-          <div class="node-connector output"></div>
-        </div>
-      <% end %>
+      <div id="nodes-canvas" class="nodes-layer" data-bot-id="<%= @bot.id %>">
+        <!-- Nodes rendered by NodeRenderer -->
+      </div>
+      <svg id="connections-canvas" class="connections-layer">
+        <!-- Connections rendered by ConnectionRenderer -->
+      </svg>
     </div>
-    <svg id="connections-canvas" class="connections-layer" data-connections="<%= (@connections || []).map { |c| { id: c.id, source: c.source_node_id, target: c.target_node_id } }.to_json %>"></svg>
   </div>
 
   <%= render "bots/nodes/editor" %>
 </div>
+
+<script type="module">
+  import { initEditor } from "editorV2"
+  
+  const botId = <%= @bot.id %>;
+  const container = document.getElementById('nodes-canvas');
+  const svgContainer = document.getElementById('connections-canvas');
+  const editorPanel = document.getElementById('node-editor-panel');
+  
+  document.addEventListener('turbo:load', () => {
+    if (!document.getElementById('nodes-canvas')) return;
+    
+    initEditor(botId, container, svgContainer, editorPanel)
+      .then(api => {
+        console.log('editorV2 initialized successfully');
+        window.editorAPI = api;
+      })
+      .catch(err => {
+        console.error('Failed to initialize editorV2:', err);
+      });
+  });
+</script>

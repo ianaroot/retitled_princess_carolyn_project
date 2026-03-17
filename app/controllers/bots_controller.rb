@@ -20,10 +20,15 @@ class BotsController < ApplicationController
     end
   end
 
-  def edit
-    @nodes = @bot.nodes.includes(:outgoing_connections, :incoming_connections)
-    @connections = @bot.nodes.flat_map(&:outgoing_connections)
+def edit
+  @nodes = @bot.nodes.includes(:outgoing_connections, :incoming_connections)
+  @connections = @bot.nodes.flat_map(&:outgoing_connections)
+  
+  respond_to do |format|
+    format.html
+    format.json { render json: { nodes: @nodes, connections: @connections } }
   end
+end
 
   def update
     if @bot.update(bot_params)

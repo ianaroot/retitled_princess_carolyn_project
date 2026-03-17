@@ -343,7 +343,7 @@ class API {
       return null
     }
     
-    const response = await fetch(`/nodes/${serverId}`, {
+    const response = await fetch(`${this.baseUrl}/nodes/${serverId}`, {
       headers: this.getHeaders('text/html')
     })
     
