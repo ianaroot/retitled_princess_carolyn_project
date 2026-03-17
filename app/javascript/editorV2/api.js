@@ -29,9 +29,13 @@ class API {
     }
     this.csrfToken = token
     
-    // Maps: clientId ↔ serverId
-    this.clientToServer = new Map()  // clientId → serverId
-    this.serverToClient = new Map()  // serverId → clientId
+    // Maps for NODES: clientId ↔ serverId
+    this.nodeClientToServer = new Map()  // node clientId → node serverId
+    this.nodeServerToClient = new Map()  // node serverId → node clientId
+    
+    // Maps for CONNECTIONS: clientId ↔ serverId
+    this.connectionClientToServer = new Map()  // connection clientId → connection serverId
+    this.connectionServerToClient = new Map()  // connection serverId → connection clientId
   }
   
   // ===== Authentication =====
@@ -78,9 +82,9 @@ class API {
     
     const json = await response.json()
     
-    // Store mapping
-    this.clientToServer.set(clientId, json.id)
-    this.serverToClient.set(json.id, clientId)
+    // Store mapping for nodes
+    this.nodeClientToServer.set(clientId, json.id)
+    this.nodeServerToClient.set(json.id, clientId)
     
     return json
   }
@@ -92,9 +96,9 @@ class API {
    * @returns {Promise<Object|null>} Server response or null if not mapped
    */
   async updateNode(clientId, updates) {
-    const serverId = this.clientToServer.get(clientId)
+    const serverId = this.nodeClientToServer.get(clientId)
     if (!serverId) {
-      console.warn(`No server ID for client ID ${clientId}, skipping update`)
+      console.warn(`No server ID for node client ID ${clientId}, skipping update`)
       return null
     }
     
@@ -141,9 +145,9 @@ class API {
    * @returns {Promise<null>}
    */
   async deleteNode(clientId) {
-    const serverId = this.clientToServer.get(clientId)
+    const serverId = this.nodeClientToServer.get(clientId)
     if (!serverId) {
-      console.warn(`No server ID for client ID ${clientId}, skipping delete`)
+      console.warn(`No server ID for node client ID ${clientId}, skipping delete`)
       return null
     }
     
@@ -159,8 +163,8 @@ class API {
     }
     
     // Clean up mapping
-    this.clientToServer.delete(clientId)
-    this.serverToClient.delete(serverId)
+    this.nodeClientToServer.delete(clientId)
+    this.nodeServerToClient.delete(serverId)
     
     return null
   }
@@ -175,11 +179,11 @@ class API {
    * @returns {Promise<Object>} Server response
    */
   async createConnection(sourceClientId, targetClientId, clientConnectionId) {
-    const sourceServerId = this.clientToServer.get(sourceClientId)
-    const targetServerId = this.clientToServer.get(targetClientId)
+    const sourceServerId = this.nodeClientToServer.get(sourceClientId)
+    const targetServerId = this.nodeClientToServer.get(targetClientId)
     
     if (!sourceServerId || !targetServerId) {
-      throw new Error('Cannot create connection: missing server IDs')
+      throw new Error('Cannot create connection: missing node server IDs')
     }
     
     const response = await fetch(`${this.baseUrl}/nodes/${sourceServerId}/connect`, {
@@ -195,9 +199,9 @@ class API {
     
     const json = await response.json()
     
-    // Store mapping
-    this.clientToServer.set(clientConnectionId, json.id)
-    this.serverToClient.set(json.id, clientConnectionId)
+    // Store mapping for connections
+    this.connectionClientToServer.set(clientConnectionId, json.id)
+    this.connectionServerToClient.set(json.id, clientConnectionId)
     
     return json
   }
@@ -209,8 +213,8 @@ class API {
    * @returns {Promise<null>}
    */
   async deleteConnection(clientConnectionId, sourceClientId) {
-    const serverConnectionId = this.clientToServer.get(clientConnectionId)
-    const sourceServerId = this.clientToServer.get(sourceClientId)
+    const serverConnectionId = this.connectionClientToServer.get(clientConnectionId)
+    const sourceServerId = this.nodeClientToServer.get(sourceClientId)
     
     if (!serverConnectionId || !sourceServerId) {
       console.warn(`No server ID for connection ${clientConnectionId}, skipping delete`)
@@ -232,8 +236,8 @@ class API {
     }
     
     // Clean up mapping
-    this.clientToServer.delete(clientConnectionId)
-    this.serverToClient.delete(serverConnectionId)
+    this.connectionClientToServer.delete(clientConnectionId)
+    this.connectionServerToClient.delete(serverConnectionId)
     
     return null
   }
@@ -247,9 +251,9 @@ class API {
    */
   async batchUpdatePositions(positions) {
     const updates = positions.map(({ clientId, x, y }) => {
-      const serverId = this.clientToServer.get(clientId)
+      const serverId = this.nodeClientToServer.get(clientId)
       if (!serverId) {
-        console.warn(`No server ID for client ID ${clientId}, skipping position update`)
+        console.warn(`No server ID for node client ID ${clientId}, skipping position update`)
         return null
       }
       return { id: serverId, x, y }
@@ -292,9 +296,9 @@ class API {
     const nodes = (json.nodes || []).map(n => {
       const clientId = generateUUID()
       
-      // Store mapping
-      this.clientToServer.set(clientId, n.id)
-      this.serverToClient.set(n.id, clientId)
+      // Store mapping for NODES
+      this.nodeClientToServer.set(clientId, n.id)
+      this.nodeServerToClient.set(n.id, clientId)
       
       return new Node({
         clientId,
@@ -309,15 +313,21 @@ class API {
     const connections = (json.connections || []).map(c => {
       const clientId = generateUUID()
       
-      // Store mapping
-      this.clientToServer.set(clientId, c.id)
-      this.serverToClient.set(c.id, clientId)
+      // Store mapping for CONNECTIONS (separate from nodes)
+      this.connectionClientToServer.set(clientId, c.id)
+      this.connectionServerToClient.set(c.id, clientId)
       
-      const sourceClientId = this.serverToClient.get(c.source_node_id)
-      const targetClientId = this.serverToClient.get(c.target_node_id)
+      // Look up node client IDs using NODE map (not connection map)
+      const sourceClientId = this.nodeServerToClient.get(c.source_node_id)
+      const targetClientId = this.nodeServerToClient.get(c.target_node_id)
       
       if (!sourceClientId || !targetClientId) {
-        console.warn(`Connection ${c.id} references missing node, skipping`)
+        console.warn(`Connection ${c.id} references missing node, skipping`, {
+          source_node_id: c.source_node_id,
+          target_node_id: c.target_node_id,
+          sourceClientId,
+          targetClientId
+        })
         return null
       }
       
@@ -338,7 +348,7 @@ class API {
    * @returns {Promise<string|null>} HTML string or null if not mapped
    */
   async getNodePreviewHtml(clientId) {
-    const serverId = this.clientToServer.get(clientId)
+    const serverId = this.nodeClientToServer.get(clientId)
     if (!serverId) {
       return null
     }
@@ -357,38 +367,58 @@ class API {
   // ===== Utility Methods =====
   
   /**
-   * Get server ID for a client ID
-   * @param {string} clientId - Client ID
+   * Get server ID for a node client ID
+   * @param {string} clientId - Node client ID
    * @returns {number|null} Server ID or null
    */
   getServerId(clientId) {
-    return this.clientToServer.get(clientId) || null
+    return this.nodeClientToServer.get(clientId) || null
   }
   
   /**
-   * Get client ID for a server ID
-   * @param {number} serverId - Server ID
+   * Get client ID for a node server ID
+   * @param {number} serverId - Node server ID
    * @returns {string|null} Client ID or null
    */
   getClientId(serverId) {
-    return this.serverToClient.get(serverId) || null
+    return this.nodeServerToClient.get(serverId) || null
+  }
+  
+  /**
+   * Get server ID for a connection client ID
+   * @param {string} clientId - Connection client ID
+   * @returns {number|null} Server ID or null
+   */
+  getConnectionServerId(clientId) {
+    return this.connectionClientToServer.get(clientId) || null
+  }
+  
+  /**
+   * Get client ID for a connection server ID
+   * @param {number} serverId - Connection server ID
+   * @returns {string|null} Client ID or null
+   */
+  getConnectionClientId(serverId) {
+    return this.connectionServerToClient.get(serverId) || null
   }
   
   /**
    * Clear all ID mappings (for testing)
    */
   clearMappings() {
-    this.clientToServer.clear()
-    this.serverToClient.clear()
+    this.nodeClientToServer.clear()
+    this.nodeServerToClient.clear()
+    this.connectionClientToServer.clear()
+    this.connectionServerToClient.clear()
   }
   
   /**
-   * Check if a client ID has been synced to server
-   * @param {string} clientId - Client ID
+   * Check if a node client ID has been synced to server
+   * @param {string} clientId - Node client ID
    * @returns {boolean}
    */
   isSynced(clientId) {
-    return this.clientToServer.has(clientId)
+    return this.nodeClientToServer.has(clientId)
   }
 }
 

@@ -78,8 +78,21 @@ class ConnectionRenderer {
     const sourceNode = this.store.getNode(connection.sourceId)
     const targetNode = this.store.getNode(connection.targetId)
     
+    // if (!sourceNode || !targetNode) {
+    //   console.warn(`Cannot render connection: missing nodes`)
+    //   return
+    // }
+    //********** above is original, below is debugging 
     if (!sourceNode || !targetNode) {
-      console.warn(`Cannot render connection: missing nodes`)
+      console.warn('Cannot render connection: missing nodes', {
+        connectionClientId: connection.clientId,
+        sourceClientId: connection.sourceId,
+        targetClientId: connection.targetId,
+        sourceNodeInStore: !!sourceNode,
+        targetNodeInStore: !!targetNode,
+        storeNodeCount: this.store.getNodes().length,
+        storeNodeClientIds: this.store.getNodes().map(n => n.clientId).slice(0, 5)
+      })
       return
     }
     
