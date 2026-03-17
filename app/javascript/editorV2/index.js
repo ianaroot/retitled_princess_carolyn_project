@@ -14,6 +14,7 @@ import ClickHandler from './handlers/ClickHandler.js'
 import KeyboardHandler from './handlers/KeyboardHandler.js'
 import { MAX_HISTORY } from './constants.js'
 import { showError } from './utils/errors.js'
+import ToolbarHandler from './handlers/ToolbarHandler.js'
 
 /**
  * Initialize the node editor
@@ -61,6 +62,8 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
   const connectionHandler = new ConnectionHandler(store, syncManager, connectionRenderer)
   const clickHandler = new ClickHandler(store, history, editorPanel)
   const keyboardHandler = new KeyboardHandler(store, history, syncManager)
+  const toolbarHandler = new ToolbarHandler(store, history, syncManager, container)
+  
   
   // Set syncManager on clickHandler for delete
   clickHandler.setSyncManager(syncManager)
@@ -70,6 +73,9 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
   
   // Setup keyboard handler
   keyboardHandler.attach()
+  
+  // Setup toolbar handler
+  toolbarHandler.attach()
   
   // Setup connection delete handler
   const nodesCanvas = container.closest('.nodes-layer') || container
@@ -120,6 +126,7 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
     connectionHandler,
     clickHandler,
     keyboardHandler,
+    ToolbarHandler,
     
     // Convenience methods
     createNode: (type, position, data) => syncManager.createNode(type, position, data),
