@@ -48,8 +48,9 @@ class History {
    * Called by SyncManager after successful server sync.
    * 
    * @param {string} description - Human-readable description
+   * @param {Object|null} [operation=null] - Operation metadata for undo/redo sync
    */
-  push(description) {
+  push(description, operation = null) {
     // Don't push during restore
     if (this.isRestoring) {
       return
@@ -65,11 +66,12 @@ class History {
       this.snapshots = this.snapshots.slice(0, this.currentIndex + 1)
     }
     
-    // Create snapshot
+    // Create snapshot with operation metadata
     const snapshot = {
       description,
       timestamp: Date.now(),
-      state: this.store.getState()
+      state: this.store.getState(),
+      operation
     }
     
     // Add to stack
@@ -86,7 +88,7 @@ class History {
   }
   
   /**
-   * Undo the last operation
+   * Undo the last operation (local only - SyncManager handles server sync)
    * Restores state from previous snapshot
    */
   undo() {
@@ -107,9 +109,49 @@ class History {
   }
   
   /**
-   * Redo a previously undone operation
+   * Redo a previously undone operation (local only - SyncManager handles server sync)
    */
   redo() {
+    if (!this.canRedo()) {
+      return
+    }
+    
+    this.isRestoring = true
+    
+    try {
+      this.currentIndex++
+      const snapshot = this.snapshots[this.currentIndex]
+      this.store.restoreState(snapshot.state)
+      this.updateUI()
+    } finally {
+      this.isRestoring = false
+    }
+  }
+  
+  /**
+   * Local-only undo (called by SyncManager after server sync completes)
+   */
+  undoLocal() {
+    if (!this.canUndo()) {
+      return
+    }
+    
+    this.isRestoring = true
+    
+    try {
+      this.currentIndex--
+      const snapshot = this.snapshots[this.currentIndex]
+      this.store.restoreState(snapshot.state)
+      this.updateUI()
+    } finally {
+      this.isRestoring = false
+    }
+  }
+  
+  /**
+   * Local-only redo (called by SyncManager after server sync completes)
+   */
+  redoLocal() {
     if (!this.canRedo()) {
       return
     }
@@ -176,6 +218,25 @@ class History {
   getCurrentDescription() {
     if (this.currentIndex < 0) return null
     return this.snapshots[this.currentIndex]?.description || null
+  }
+  
+  /**
+   * Get current snapshot (for SyncManager to access operation metadata)
+   * @returns {Object|null}
+   */
+  getCurrentSnapshot() {
+    if (this.currentIndex < 0) return null
+    return this.snapshots[this.currentIndex]
+  }
+  
+  /**
+   * Get next snapshot (for redo operations)
+   * @returns {Object|null}
+   */
+  getNextSnapshot() {
+    if (this.currentIndex < 0) return null
+    if (this.currentIndex >= this.snapshots.length - 1) return null
+    return this.snapshots[this.currentIndex + 1]
   }
   
   // ===== Batch Operations =====

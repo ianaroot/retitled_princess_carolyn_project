@@ -155,10 +155,17 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
     deleteConnection: (clientId) => syncManager.deleteConnection(clientId),
     updateNodeData: (clientId, data) => syncManager.updateNodeData(clientId, data),
     
-    undo: () => history.undo(),
-    redo: () => history.redo(),
-    canUndo: () => history.canUndo(),
-    canRedo: () => history.canRedo(),
+    // Undo/redo - async because they sync with server
+    undo: async () => {
+      await syncManager.undo()
+      updateUndoRedoUI(history)
+    },
+    redo: async () => {
+      await syncManager.redo()
+      updateUndoRedoUI(history)
+    },
+    canUndo: () => history.canUndo() && !syncManager.isUndoRedoPending,
+    canRedo: () => history.canRedo() && !syncManager.isUndoRedoPending,
     
     // Selection
     getSelectedNode: () => clickHandler.getSelectedNodeId(),
@@ -184,6 +191,10 @@ function updateUndoRedoUI(history) {
   const undoBtn = document.querySelector('.btn-undo')
   const redoBtn = document.querySelector('.btn-redo')
   const countDisplay = document.querySelector('.undo-count')
+  
+  // Get syncManager from global or passed context
+  // Note: syncManager is not passed here, so we need to check the loading state differently
+  // The buttons will be updated via KeyboardHandler.updateUndoRedoUI() which has access to syncManager
   
   if (undoBtn) {
     undoBtn.disabled = !history.canUndo()

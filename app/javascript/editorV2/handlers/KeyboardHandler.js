@@ -16,7 +16,7 @@ class KeyboardHandler {
    * Create KeyboardHandler
    * @param {Store} store - Store instance
    * @param {History} history - History instance (passed directly)
-   * @param {SyncManager} syncManager - SyncManager instance (for delete operations)
+   * @param {SyncManager} syncManager - SyncManager instance (for undo/redo)
    */
   constructor(store, history, syncManager) {
     this.store = store
@@ -97,20 +97,41 @@ class KeyboardHandler {
   }
   
   /**
-   * Perform undo
+   * Perform undo (async - syncs with server)
    */
-  undo() {
-    if (this.history.canUndo()) {
-      this.history.undo()
-    }
+  async undo() {
+    if (!this.history.canUndo()) return
+    if (this.syncManager.isUndoRedoPending) return
+    
+    await this.syncManager.undo()
+    this.updateUndoRedoUI()
   }
   
   /**
-   * Perform redo
+   * Perform redo (async - syncs with server)
    */
-  redo() {
-    if (this.history.canRedo()) {
-      this.history.redo()
+  async redo() {
+    if (!this.history.canRedo()) return
+    if (this.syncManager.isUndoRedoPending) return
+    
+    await this.syncManager.redo()
+    this.updateUndoRedoUI()
+  }
+  
+  /**
+   * Update undo/redo button UI
+   */
+  updateUndoRedoUI() {
+    const undoBtn = document.querySelector('.btn-undo')
+    const redoBtn = document.querySelector('.btn-redo')
+    
+    if (undoBtn) {
+      undoBtn.disabled = !this.history.canUndo() || this.syncManager.isUndoRedoPending
+      undoBtn.classList.toggle('loading', this.syncManager.isUndoRedoPending)
+    }
+    if (redoBtn) {
+      redoBtn.disabled = !this.history.canRedo() || this.syncManager.isUndoRedoPending
+      redoBtn.classList.toggle('loading', this.syncManager.isUndoRedoPending)
     }
   }
   
@@ -119,7 +140,7 @@ class KeyboardHandler {
    * @returns {boolean}
    */
   canUndo() {
-    return this.history.canUndo()
+    return this.history.canUndo() && !this.syncManager.isUndoRedoPending
   }
   
   /**
@@ -127,7 +148,7 @@ class KeyboardHandler {
    * @returns {boolean}
    */
   canRedo() {
-    return this.history.canRedo()
+    return this.history.canRedo() && !this.syncManager.isUndoRedoPending
   }
   
   /**
