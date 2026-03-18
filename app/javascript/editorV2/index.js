@@ -77,9 +77,9 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
   // Setup toolbar handler
   toolbarHandler.attach()
   
-  // Setup connection delete handler
-  const nodesCanvas = container.closest('.nodes-layer') || container
-  connectionHandler.setupDeleteHandler(nodesCanvas)
+  // Setup connection delete handler (on canvas-container, where delete buttons are appended)
+  const deleteButtonContainer = svgContainer.parentElement
+  connectionHandler.setupDeleteHandler(deleteButtonContainer)
   
   // 5. Helper functions for attaching handlers to nodes
   function attachHandlersToNode(element, clientId) {
