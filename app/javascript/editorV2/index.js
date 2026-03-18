@@ -182,6 +182,7 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
       connectionHandler.destroy()
       clickHandler.destroy()
       keyboardHandler.destroy()
+      store.destroy()
     }
   }
 }

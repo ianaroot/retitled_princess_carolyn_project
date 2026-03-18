@@ -35,6 +35,9 @@ class Store {
     
     // Flag to prevent recursive updates
     this.isUpdating = false
+    
+    // Flag to prevent updates after destruction
+    this.destroyed = false
   }
   
   // ===== Subscriber Pattern =====
@@ -56,12 +59,17 @@ class Store {
     }
   }
   
-  /**
-   * Emit an event to all subscribers
-   * @param {string} event - Event name (use EVENTS constant)
-   * @param {Object} data - Event data
-   */
+/**
+    * Emit an event to all subscribers
+    * @param {string} event - Event name (use EVENTS constant)
+    * @param {Object} data - Event data
+    */
   emit(event, data) {
+    // Don't emit if store is destroyed
+    if (this.destroyed) {
+      return
+    }
+    
     // Prevent recursive updates
     if (this.isUpdating) {
       console.warn(`Recursive emit prevented: ${event}`)
@@ -368,6 +376,16 @@ class Store {
       editingNodeId: null
     }
     this.emit(EVENTS.GRAPH_REPLACE, { graph: this.graph })
+  }
+  
+  /**
+   * Destroy the store and prevent further updates
+   * Called when editor is torn down
+   */
+  destroy() {
+    this.destroyed = true
+    this.subscribers = []
+    this.graph = new Graph()
   }
 }
 

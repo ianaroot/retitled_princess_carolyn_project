@@ -1,6 +1,6 @@
 <h1>Editing Bot: <%= @bot.name %></h1>
 
-<div class="bot-editor">
+<div class="bot-editor" data-controller="editor" data-editor-bot-id-value="<%= @bot.id %>">
   <div class="editor-toolbar">
     <div class="toolbar-section">
       <h3>Add Node</h3>
@@ -52,26 +52,3 @@
   <%= render "bots/nodes/editor" %>
 </div>
 
-<script type="module">
-  import { initEditor } from "editorV2"
-  
-  const botId = <%= @bot.id %>;
-  const container = document.getElementById('nodes-canvas');
-  const svgContainer = document.getElementById('connections-canvas');
-  const editorPanel = document.getElementById('node-editor-panel');
-  
-  document.addEventListener('turbo:load', () => {
-    if (!document.getElementById('nodes-canvas')) return;
-    
-    initEditor(botId, container, svgContainer, editorPanel)
-      .then(api => {
-        console.log('editorV2 initialized successfully');
-        <% if Rails.env.development? || Rails.env.test? %>
-        window.editorAPI = api;
-        <% end %>
-      })
-      .catch(err => {
-        console.error('Failed to initialize editorV2:', err);
-      });
-  });
-</script>
