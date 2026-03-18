@@ -81,28 +81,48 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
   const nodesCanvas = container.closest('.nodes-layer') || container
   connectionHandler.setupDeleteHandler(nodesCanvas)
   
-  // 5. Attach handlers to initial nodes (rendered by NodeRenderer during loadBot)
+  // 5. Helper functions for attaching handlers to nodes
+  function attachHandlersToNode(element, clientId) {
+    dragHandler.attach(element, clientId)
+    connectionHandler.attach(element, clientId)
+    clickHandler.attach(element, clientId)
+  }
+  
+  function attachHandlersToAllNodes() {
+    store.getNodes().forEach(node => {
+      const element = container.querySelector(`[data-client-id="${node.clientId}"]`)
+      if (element) {
+        attachHandlersToNode(element, node.clientId)
+      }
+    })
+  }
+  
+  // 6. Attach handlers to initial nodes (rendered by NodeRenderer during loadBot)
   initialGraph.nodes.forEach((node, clientId) => {
     setTimeout(() => {
       const element = container.querySelector(`[data-client-id="${clientId}"]`)
       if (element) {
-        dragHandler.attach(element, clientId)
-        connectionHandler.attach(element, clientId)
-        clickHandler.attach(element, clientId)
+        attachHandlersToNode(element, clientId)
       }
     }, 0)
   })
   
-  // 6. Subscribe to new nodes to attach handlers
+  // 7. Subscribe to store events for handler re-attachment
   store.subscribe((event, data) => {
-    if (event === 'node:add' || event === 'node:update') {
+    // New nodes need handlers attached
+    if (event === 'node:add') {
       setTimeout(() => {
         const element = container.querySelector(`[data-client-id="${data.clientId}"]`)
         if (element) {
-          dragHandler.attach(element, data.clientId)
-          connectionHandler.attach(element, data.clientId)
-          clickHandler.attach(element, data.clientId)
+          attachHandlersToNode(element, data.clientId)
         }
+      }, 0)
+    }
+    
+    // Undo/redo or graph replacement requires re-attaching all handlers
+    if (event === 'graph:replace' || event === 'graph:restore') {
+      setTimeout(() => {
+        attachHandlersToAllNodes()
       }, 0)
     }
   })
