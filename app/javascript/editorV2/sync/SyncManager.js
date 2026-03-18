@@ -283,7 +283,7 @@ class SyncManager {
         
       case 'deleteConnection':
         // Redo: delete the connection again
-        await this.api.deleteConnection(operation.clientId)
+        await this.api.deleteConnection(operation.clientId, operation.sourceId)
         break
         
       default:
