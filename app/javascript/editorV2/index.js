@@ -57,13 +57,12 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
     throw error
   }
   
-  // 4. Initialize handlers (pass history explicitly)
+// 4. Initialize handlers (pass history explicitly)
   const dragHandler = new DragHandler(store, syncManager, history)
   const connectionHandler = new ConnectionHandler(store, syncManager, connectionRenderer)
   const clickHandler = new ClickHandler(store, history, editorPanel)
   const keyboardHandler = new KeyboardHandler(store, history, syncManager)
-  const toolbarHandler = new ToolbarHandler(store, history, syncManager, container)
-  
+  const toolbarHandler = new ToolbarHandler(store, history, syncManager, container, clickHandler)
   
   // Set syncManager on clickHandler for delete
   clickHandler.setSyncManager(syncManager)
@@ -76,6 +75,10 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
   
   // Setup toolbar handler
   toolbarHandler.attach()
+  
+  // Wire up selection callbacks to update toolbar delete button
+  clickHandler.onNodeSelected = () => toolbarHandler.updateButtons()
+  clickHandler.onNodeDeselected = () => toolbarHandler.updateButtons()
   
   // Setup connection delete handler (on canvas-container, where delete buttons are appended)
   const deleteButtonContainer = svgContainer.parentElement

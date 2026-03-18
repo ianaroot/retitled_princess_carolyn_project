@@ -17,20 +17,22 @@ class ToolbarHandler {
    * @param {History} history - History instance
    * @param {SyncManager} syncManager - SyncManager instance
    * @param {HTMLElement} container - Nodes canvas container (for positioning)
+   * @param {ClickHandler} clickHandler - ClickHandler instance (for node selection)
    */
-  constructor(store, history, syncManager, container) {
+  constructor(store, history, syncManager, container, clickHandler) {
     this.store = store
     this.history = history
     this.syncManager = syncManager
     this.container = container
+    this.clickHandler = clickHandler
     
     // Track node count for offset positioning
     this.nodeCount = 0
   }
   
-  /**
-   * Attach toolbar event listeners
-   */
+/**
+    * Attach toolbar event listeners
+    */
   attach() {
     // Add Node buttons
     document.querySelectorAll('.btn-add-node').forEach(btn => {
@@ -53,6 +55,12 @@ class ToolbarHandler {
         await this.redo()
         this.updateButtons()
       })
+    }
+    
+    // Delete node button
+    const deleteBtn = document.querySelector('.btn-delete-node')
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', () => this.handleDeleteClick())
     }
   }
   
@@ -98,9 +106,9 @@ class ToolbarHandler {
     await this.syncManager.redo()
   }
   
-  /**
-   * Update undo/redo button states
-   */
+/**
+    * Update undo/redo button states
+    */
   updateButtons() {
     const undoBtn = document.querySelector('.btn-undo')
     const redoBtn = document.querySelector('.btn-redo')
@@ -113,6 +121,30 @@ class ToolbarHandler {
       redoBtn.disabled = !this.history.canRedo() || this.syncManager.isUndoRedoPending
       redoBtn.classList.toggle('loading', this.syncManager.isUndoRedoPending)
     }
+    
+    this.updateDeleteButton()
+  }
+  
+  /**
+   * Handle delete node button click
+   */
+  handleDeleteClick() {
+    this.clickHandler?.deleteSelectedNode()
+  }
+  
+  /**
+   * Update delete button state based on selection
+   */
+  updateDeleteButton() {
+    const deleteBtn = document.querySelector('.btn-delete-node')
+    if (!deleteBtn) return
+    
+    const selectedId = this.clickHandler?.getSelectedNodeId()
+    const node = selectedId ? this.store.getNode(selectedId) : null
+    
+    // Disable if: no selection OR root node
+    const isDisabled = !selectedId || (node && node.type === 'root')
+    deleteBtn.disabled = isDisabled
   }
   
   /**
