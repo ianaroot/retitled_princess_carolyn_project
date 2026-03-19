@@ -47,23 +47,22 @@ class View{
     element.classList.remove(Board.BLACK)
   };
   displayPiece(args){
-    // let elem = document.createElement("img"),
-    //   pieceInitials = args["pieceInitials"],
-    //   gridPosition = args["gridPosition"];
-    // elem.setAttribute("src", this.pieceImgSrc( pieceInitials ) );
-    // elem.setAttribute("height", View.TILE_HEIGHT);
-    // elem.setAttribute("width", View.TILE_HEIGHT);
-    // let element = document.getElementById( gridPosition );
-    // element.appendChild(elem)
     
-    let  gridPosition = args["gridPosition"],
-      pieceInitials = args["pieceInitials"],
-      element = document.getElementById( gridPosition ),
-      pieceImage = this.unicodePieces[pieceInitials];
+    // let  gridPosition = args["gridPosition"],
+    //   pieceInitials = args["pieceInitials"],
+    //   element = document.getElementById( gridPosition ),
+    //   pieceImage = this.unicodePieces[pieceInitials];
+    // element.innerHTML = pieceImage;
+    // element.classList.add(pieceInitials[0])
+    // // TODO sort of magic string like...both above and below
+    // element.style.color = "black"  let gridPosition = args["gridPosition"],
+    let  gridPosition = args["gridPosition"],pieceInitials = args["pieceInitials"],
+    element = document.getElementById( gridPosition ),
+    pieceImage = this.unicodePieces[pieceInitials];
     element.innerHTML = pieceImage;
     element.classList.add(pieceInitials[0])
-    // TODO sort of magic string like...both above and below
     element.style.color = "black"
+    // element.style.textShadow = "0 0 1px white, 0 0 1px white"
 
   };
 

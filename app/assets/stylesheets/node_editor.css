@@ -560,3 +560,90 @@
   color: #666;
   margin-left: 4px;
 }
+
+/* Undo/Redo Error Dialog */
+.undo-error-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.undo-error-dialog .dialog-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.undo-error-dialog .dialog-content {
+  position: relative;
+  background: #16213e;
+  border: 1px solid #e94560;
+  border-radius: 8px;
+  padding: 20px;
+  min-width: 300px;
+  max-width: 500px;
+}
+
+.undo-error-dialog h3 {
+  margin: 0 0 10px 0;
+  color: #e94560;
+}
+
+.undo-error-dialog p {
+  margin: 0 0 8px 0;
+  color: #eee;
+}
+
+.undo-error-dialog .error-message {
+  color: #ff6b6b;
+  font-family: monospace;
+  font-size: 12px;
+  background: #0a1525;
+  padding: 8px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.undo-error-dialog .dialog-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.undo-error-dialog .btn-retry {
+  background: #e94560;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.undo-error-dialog .btn-cancel {
+  background: #0f3460;
+  color: #aaa;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Loading state for undo/redo buttons */
+.btn-undo.loading, .btn-redo.loading {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.btn-undo.loading::after, .btn-redo.loading::after {
+  content: '...';
+  margin-left: 4px;
+}

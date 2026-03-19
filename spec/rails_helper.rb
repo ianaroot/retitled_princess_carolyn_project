@@ -20,7 +20,23 @@ Capybara.register_driver :selenium_chrome do |app|
   Capybara::Selenium::Driver.new(app, browser: :chrome, options: options)
 end
 
-Capybara.javascript_driver = :selenium_chrome
+Capybara.register_driver :selenium_firefox do |app|
+  options = Selenium::WebDriver::Firefox::Options.new
+  options.add_argument('--headless') unless ENV['SHOW_BROWSER']
+  
+  Capybara::Selenium::Driver.new(app, browser: :firefox, options: options)
+end
+
+# Select browser via BROWSER environment variable (default: chrome)
+# Usage: BROWSER=firefox bundle exec rspec
+browser_driver = case ENV.fetch('BROWSER', 'chrome').downcase
+when 'firefox'
+  :selenium_firefox
+else
+  :selenium_chrome
+end
+
+Capybara.javascript_driver = browser_driver
 Capybara.default_max_wait_time = 5
 
 # Add additional requires below this line. Rails is not loaded until this point!
@@ -39,7 +55,7 @@ require_relative 'support/database_cleaner'
 # directory. Alternatively, in the individual `*_spec.rb` files, manually
 # require only the support files necessary.
 #
-# Rails.root.glob('spec/support/**/*.rb').sort_by(&:to_s).each { |f| require f }
+Rails.root.glob('spec/support/**/*.rb').sort_by(&:to_s).each { |f| require f }
 
 # Checks for pending migrations and applies them before tests are run.
 # If you are not using ActiveRecord, you can remove these lines.
@@ -56,8 +72,19 @@ RSpec.configure do |config|
   config.include Devise::Test::IntegrationHelpers, type: :request
   config.include Devise::Test::IntegrationHelpers, type: :feature
   
-  # Filter out slow tests by default (run with --tag slow to include them)
+  # Include EditorV2 helpers for feature tests
+  config.include EditorV2Helpers, type: :feature
+  
+  # Tag configuration for running test subsets
+  # - Default: excludes :slow tests
+  # - Run slow tests: bundle exec rspec --tag slow
+  # - Run all tests: bundle exec rspec --tag all
   config.filter_run_excluding :slow unless ENV['RUN_SLOW_TESTS']
+  
+  # When --tag all is passed, run all tests regardless of :slow tag
+  if config.filter_manager.inclusions.rules[:all]
+    config.filter_run_excluding :slow
+  end
 
   # Remove this line if you're not using ActiveRecord or ActiveRecord fixtures
   config.fixture_paths = [
