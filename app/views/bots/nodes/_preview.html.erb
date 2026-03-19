@@ -1,0 +1,2 @@
+<%= render partial: "bots/nodes/types/#{node.node_type}", locals: { node: node } rescue render(partial: "bots/nodes/types/default", locals: { node: node }) %>
+<h1><%= node.id %></h1>

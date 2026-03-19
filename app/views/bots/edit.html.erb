@@ -1,0 +1,54 @@
+<h1>Editing Bot: <%= @bot.name %></h1>
+
+<div class="bot-editor" data-controller="editor" data-editor-bot-id-value="<%= @bot.id %>">
+  <div class="editor-toolbar">
+    <div class="toolbar-section">
+      <h3>Add Node</h3>
+      <button class="btn-add-node" data-type="condition">+ Condition</button>
+      <button class="btn-add-node" data-type="action">+ Action</button>
+    </div>
+    
+    <div class="toolbar-section">
+      <h3>Tool</h3>
+      <button class="tool-select active" data-tool="select">Select</button>
+      <button class="btn-delete-node" disabled title="Delete selected node (Delete/Backspace)">Delete</button>
+    </div>
+
+    <div class="toolbar-section">
+      <h3>View</h3>
+      <button id="zoom-out" class="btn-zoom">-</button>
+      <span id="zoom-level">100%</span>
+      <button id="zoom-in" class="btn-zoom">+</button>
+      <button id="zoom-reset" class="btn-zoom-reset">Reset</button>
+    </div>
+
+    <div class="toolbar-section">
+      <h3>History</h3>
+      <button class="btn-undo" disabled title="Undo (Ctrl+Z)">
+        ↩ Undo <span class="undo-count">(0/50)</span>
+      </button>
+      <button class="btn-redo" disabled title="Redo (Ctrl+Y)">
+        ↪ Redo
+      </button>
+    </div>
+
+    <div class="toolbar-section">
+      <%= link_to 'Back to Bots', bots_path, class: 'btn-back' %>
+      <%= link_to 'Play Test Game', new_game_path, class: 'btn-test' %>
+    </div>
+  </div>
+
+  <div class="editor-main">
+    <div class="canvas-container">
+      <div id="nodes-canvas" class="nodes-layer" data-bot-id="<%= @bot.id %>">
+        <!-- Nodes rendered by NodeRenderer -->
+      </div>
+      <svg id="connections-canvas" class="connections-layer">
+        <!-- Connections rendered by ConnectionRenderer -->
+      </svg>
+    </div>
+  </div>
+
+  <%= render "bots/nodes/editor" %>
+</div>
+

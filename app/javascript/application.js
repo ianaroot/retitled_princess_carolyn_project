@@ -3,7 +3,8 @@ import "@hotwired/turbo-rails"
 import "controllers"
 import Api from "gameplay/api"
 import Board from "gameplay/board"
-import Bot from "gameplay/bot"
+import BotClass from "gameplay/bot"
+// import NodeEditor from "editor/node_editor"
 import GameController from "gameplay/game_controller"
 import Layout from "gameplay/layout"
 import MoveObject from "gameplay/move_object"
@@ -19,5 +20,14 @@ import Sound from "gameplay/sound"
 // })
 
 document.addEventListener('turbo:load', () => {
-    var gameController = new GameController()
+    if (document.getElementById('chess-board')) {
+      var gameController = new GameController()
+      
+      // Expose globally for debugging in development only
+      // Only exposed in development to limit security concerns in production
+      if (document.body.dataset.environment === 'development') {
+        window.gameController = gameController;
+        window.api = gameController.api;
+      }
+    }
   });

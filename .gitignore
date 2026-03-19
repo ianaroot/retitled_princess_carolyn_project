@@ -34,5 +34,11 @@
 # Ignore master key for decrypting credentials and more.
 /config/master.key
 
+# local communication with ai for context window persistence
+/agents/
+
+# spec results
+/node_modules/.vite/vitest/results.json
+
 
 .DS_Store

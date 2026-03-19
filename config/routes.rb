@@ -7,7 +7,18 @@ Rails.application.routes.draw do
   
   root to: "home#index" 
 
-  resources :bots
+  resources :bots, except: :show do
+    resources :nodes, controller: 'bot_nodes', except: [:index, :new] do
+      member do
+        post :connect
+        post :update_position
+      end
+      collection do
+        post :batch_update_positions
+      end
+    end
+    delete 'nodes/:node_id/connections/:id', to: 'bot_nodes#disconnect', as: :node_connection
+  end
 
   resources :games, only: [:new]
 
