@@ -11,6 +11,10 @@ import { EVENTS } from '../constants.js'
  * - Mouse move during drag
  * - Mouse up to end drag and sync
  * 
+ * Child dragging:
+ * - By default, dragging a node also moves all its descendants
+ * - Hold Shift while dragging to move only the selected node
+ * 
  * IMPORTANT: This handler never calls history.push() directly.
  * SyncManager handles history push after successful server sync.
  */
@@ -33,6 +37,10 @@ class DragHandler {
     this.startPosition = null
     this.offset = { x: 0, y: 0 }
     this.hasMoved = false
+    
+    // Child drag state
+    this.shouldDragChildren = true
+    this.childOffsets = new Map()  // Map<clientId, { dx, dy, startX, startY }>
     
     // Pre-bound handlers (fixes removeEventListener bug)
     this.boundHandleMouseMove = this.handleMouseMove.bind(this)
@@ -94,6 +102,27 @@ class DragHandler {
     // Store start position (for potential rollback)
     this.startPosition = { ...node.position }
     
+    // Check Shift key: hold Shift to drag node alone (without children)
+    this.shouldDragChildren = !event.shiftKey
+    
+    if (this.shouldDragChildren) {
+      // Find all descendants and store their offsets relative to dragged node
+      this.childOffsets.clear()
+      const descendantIds = this.store.graph.getDescendantIds(clientId)
+      
+      descendantIds.forEach(id => {
+        const child = this.store.getNode(id)
+        if (child) {
+          this.childOffsets.set(id, {
+            dx: child.position.x - node.position.x,
+            dy: child.position.y - node.position.y,
+            startX: child.position.x,
+            startY: child.position.y
+          })
+        }
+      })
+    }
+    
     // Calculate offset (where in the node the mouse clicked)
     const rect = element.getBoundingClientRect()
     this.offset = {
@@ -140,14 +169,30 @@ class DragHandler {
     
     this.hasMoved = true
     
-    // Optimistic update: update store immediately
+    // Optimistic update: update dragged node
     this.store.updateNode(this.draggedClientId, { position: { x, y } })
     
-    // Update element position directly for smoother rendering
+    // Update DOM for dragged node directly for smoother rendering
     const element = document.querySelector(`[data-client-id="${this.draggedClientId}"]`)
     if (element) {
       element.style.left = `${x}px`
       element.style.top = `${y}px`
+    }
+    
+    // Update all descendants with same delta
+    if (this.shouldDragChildren) {
+      this.childOffsets.forEach((offset, childId) => {
+        const childX = x + offset.dx
+        const childY = y + offset.dy
+        
+        this.store.updateNode(childId, { position: { x: childX, y: childY } })
+        
+        const childElement = document.querySelector(`[data-client-id="${childId}"]`)
+        if (childElement) {
+          childElement.style.left = `${childX}px`
+          childElement.style.top = `${childY}px`
+        }
+      })
     }
   }
   
@@ -172,14 +217,40 @@ class DragHandler {
     if (this.hasMoved && this.draggedClientId && this.draggedNode) {
       const node = this.store.getNode(this.draggedClientId)
       if (node) {
-        // SyncManager handles: update position, history push
-        this.syncManager.updateNodePosition(
-          this.draggedClientId,
-          node.position.x,
-          node.position.y
-        ).catch(err => {
-          console.error('Failed to sync drag position:', err)
-        })
+        if (this.shouldDragChildren && this.childOffsets.size > 0) {
+          // Multi-node drag: use batch update
+          const positions = [
+            { clientId: this.draggedClientId, x: node.position.x, y: node.position.y }
+          ]
+          
+          this.childOffsets.forEach((offset, childId) => {
+            const child = this.store.getNode(childId)
+            if (child) {
+              positions.push({
+                clientId: childId,
+                x: child.position.x,
+                y: child.position.y
+              })
+            }
+          })
+          
+          const descendantCount = this.childOffsets.size
+          const description = `Move ${this.draggedNode.type} node (+ ${descendantCount} descendants)`
+          
+          this.syncManager.batchUpdatePositions(positions, description)
+            .catch(err => {
+              console.error('Failed to sync drag positions:', err)
+            })
+        } else {
+          // Single-node drag
+          this.syncManager.updateNodePosition(
+            this.draggedClientId,
+            node.position.x,
+            node.position.y
+          ).catch(err => {
+            console.error('Failed to sync drag position:', err)
+          })
+        }
       }
     }
     
@@ -189,6 +260,7 @@ class DragHandler {
     this.draggedNode = null
     this.startPosition = null
     this.hasMoved = false
+    this.childOffsets.clear()
   }
   
   /**
@@ -212,7 +284,7 @@ class DragHandler {
    */
   cancelDrag() {
     if (this.isDragging) {
-      // Restore start position
+      // Restore dragged node position
       if (this.startPosition && this.draggedClientId) {
         this.store.updateNode(this.draggedClientId, { position: this.startPosition })
         
@@ -224,6 +296,19 @@ class DragHandler {
         }
       }
       
+      // Restore descendant positions
+      if (this.shouldDragChildren) {
+        this.childOffsets.forEach((offset, childId) => {
+          this.store.updateNode(childId, { position: { x: offset.startX, y: offset.startY } })
+          
+          const childElement = document.querySelector(`[data-client-id="${childId}"]`)
+          if (childElement) {
+            childElement.style.left = `${offset.startX}px`
+            childElement.style.top = `${offset.startY}px`
+          }
+        })
+      }
+      
       // Remove handlers
       document.removeEventListener('mousemove', this.boundHandleMouseMove)
       document.removeEventListener('mouseup', this.boundHandleMouseUp)
@@ -233,6 +318,7 @@ class DragHandler {
       this.draggedClientId = null
       this.startPosition = null
       this.hasMoved = false
+      this.childOffsets.clear()
     }
   }
   
