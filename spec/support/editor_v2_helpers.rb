@@ -3,6 +3,12 @@
 # Helper methods for EditorV2 feature tests
 # Provides utilities for finding nodes by server ID via client ID mapping,
 # and common editor operations.
+
+# Timing constants for async operations
+ASYNC_WAIT = 0.5  # Wait for async server sync operations
+HOVER_WAIT = 0.2  # Wait for hover reveal
+SELECTION_WAIT = 0.1  # Wait for selection animation
+
 module EditorV2Helpers
   # Find a node's client ID given its server (database) ID
   # Uses window.editorAPI to map server IDs to client IDs
@@ -62,6 +68,12 @@ module EditorV2Helpers
     all('.node').count
   end
 
+  # Wait for expected node count in DOM
+  # @param expected_count [Integer] Expected number of nodes
+  def expect_node_count(expected_count)
+    expect(page).to have_css('.node', count: expected_count, wait: 2)
+  end
+
   # Count connections in store
   # @return [Integer] Number of connections
   def connection_count
@@ -72,32 +84,26 @@ module EditorV2Helpers
   # Uses Capybara's built-in waiting for async state changes
   # @return [Boolean] true if enabled, false if disabled
   def undo_enabled?
-    page.has_css?('.btn-undo:not([disabled])', wait: 2)
+    page.has_button?('↩ Undo', disabled: false, wait: 2)
   end
 
   # Check if redo button is enabled
   # Uses Capybara's built-in waiting for async state changes
   # @return [Boolean] true if enabled, false if disabled
   def redo_enabled?
-    page.has_css?('.btn-redo:not([disabled])', wait: 2)
+    page.has_button?('↪ Redo', disabled: false, wait: 2)
   end
 
-# Click undo button and wait for async operations
+  # Click undo button and wait for async operations
   def click_undo
     find('.btn-undo').click
-    sleep 0.5 # Wait for async server sync
+    sleep ASYNC_WAIT
   end
 
   # Click redo button and wait for async operations
   def click_redo
     find('.btn-redo').click
-    sleep 0.5 # Wait for async server sync
-  end
-
-  # Click redo button and wait for async operations
-  def click_redo
-    find('.btn-redo').click
-    sleep 0.3
+    sleep ASYNC_WAIT
   end
 
   # Select a node by clicking it
@@ -106,7 +112,7 @@ module EditorV2Helpers
     element = find_node_by_server_id(server_id)
     # Use JavaScript click to avoid header overlap issues at small viewport sizes
     page.execute_script('arguments[0].click()', element)
-    sleep 0.1 # Allow for selection animation
+    sleep SELECTION_WAIT
   end
 
   # Delete the currently selected node via toolbar button
@@ -145,12 +151,12 @@ module EditorV2Helpers
     
     # Hover to reveal the delete button (mimics user behavior)
     hitArea.hover
-    sleep 0.2
+    sleep HOVER_WAIT
     
     # Find button (allow hidden) and click via JS (more reliable for hover-triggered visibility)
     delete_btn = find(".connection-delete-btn[data-source-id='#{source_client}'][data-target-id='#{target_client}']", visible: :all)
     page.execute_script('arguments[0].click()', delete_btn)
-    sleep 0.3 # Wait for connection to be deleted
+    sleep ASYNC_WAIT
   end
 
   # Find a node in the database by its properties
@@ -177,5 +183,18 @@ module EditorV2Helpers
   # @return [Boolean] true if editorAPI is defined
   def editor_api_available?
     page.evaluate_script('typeof window.editorAPI !== "undefined"')
+  end
+
+  # Simulate network offline by mocking fetch
+  def go_offline
+    page.execute_script(<<~JS)
+      window.__originalFetch = window.fetch;
+      window.fetch = () => Promise.reject(new TypeError('Network error'));
+    JS
+  end
+
+  # Restore network by restoring original fetch
+  def go_online
+    page.execute_script('window.fetch = window.__originalFetch;')
   end
 end
