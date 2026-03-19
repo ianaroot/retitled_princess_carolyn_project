@@ -5,8 +5,11 @@ class Api {
     this._board = args["board"]
     this._gameController = args["gameController"];
   }
-  printBoardToConsole(perspective = 'white'){
-    this._board.printBoardToConsole(perspective);
+  consoleLogBlackPov(){
+    this._board.consoleLogBlackPov()
+  }
+  consoleLogWhitePov(){
+    this._board.consoleLogWhitePov()
   }
   whoseTurn(){
     return this._board.allowedToMove
