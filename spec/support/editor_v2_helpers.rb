@@ -8,6 +8,7 @@
 ASYNC_WAIT = 0.5  # Wait for async server sync operations
 HOVER_WAIT = 0.2  # Wait for hover reveal
 SELECTION_WAIT = 0.1  # Wait for selection animation
+MOUSE_CLICK_OFFSET = 5  # Offset from element edge for drag simulation
 
 module EditorV2Helpers
   # Find a node's client ID given its server (database) ID
@@ -94,16 +95,16 @@ module EditorV2Helpers
     page.has_button?('↪ Redo', disabled: false, wait: 2)
   end
 
-  # Click undo button and wait for async operations
+  # Click undo button and wait for loading to complete
   def click_undo
     find('.btn-undo').click
-    sleep ASYNC_WAIT
+    expect(page).not_to have_css('.btn-undo.loading', wait: 2)
   end
 
-  # Click redo button and wait for async operations
+  # Click redo button and wait for loading to complete
   def click_redo
     find('.btn-redo').click
-    sleep ASYNC_WAIT
+    expect(page).not_to have_css('.btn-redo.loading', wait: 2)
   end
 
   # Select a node by clicking it
@@ -196,5 +197,153 @@ module EditorV2Helpers
   # Restore network by restoring original fetch
   def go_online
     page.execute_script('window.fetch = window.__originalFetch;')
+  end
+
+  # Simulate dragging a node to a new position
+  # All descendants will move with the node (unless Shift key is used)
+  # @param server_id [Integer] The database ID of the node
+  # @param new_x [Integer] Target X position
+  # @param new_y [Integer] Target Y position
+  def drag_node(server_id, new_x, new_y)
+    client_id = find_node_client_id(server_id)
+    
+    # Get current position from store
+    current = page.evaluate_script(<<~JS)
+      (function() {
+        const node = window.editorAPI.store.getNode('#{client_id}');
+        return { x: node.position.x, y: node.position.y };
+      })();
+    JS
+    
+    current_x = current['x']
+    current_y = current['y']
+    
+    # Mouse down at current position (with small offset for realistic click)
+    page.execute_script(<<~JS)
+      (function() {
+        const el = document.querySelector('[data-client-id="#{client_id}"]');
+        const canvas = document.getElementById('nodes-canvas');
+        const canvasRect = canvas.getBoundingClientRect();
+        
+        el.dispatchEvent(new MouseEvent('mousedown', {
+          clientX: canvasRect.left + #{current_x} + #{MOUSE_CLICK_OFFSET},
+          clientY: canvasRect.top + #{current_y} + #{MOUSE_CLICK_OFFSET},
+          button: 0,
+          bubbles: true
+        }));
+      })();
+    JS
+    
+    # Mouse move to new position
+    page.execute_script(<<~JS)
+      (function() {
+        const canvas = document.getElementById('nodes-canvas');
+        const canvasRect = canvas.getBoundingClientRect();
+        
+        document.dispatchEvent(new MouseEvent('mousemove', {
+          clientX: canvasRect.left + #{new_x} + #{MOUSE_CLICK_OFFSET},
+          clientY: canvasRect.top + #{new_y} + #{MOUSE_CLICK_OFFSET},
+          bubbles: true
+        }));
+      })();
+    JS
+    
+    # Mouse up at new position
+    page.execute_script(<<~JS)
+      (function() {
+        const canvas = document.getElementById('nodes-canvas');
+        const canvasRect = canvas.getBoundingClientRect();
+        
+        document.dispatchEvent(new MouseEvent('mouseup', {
+          clientX: canvasRect.left + #{new_x} + #{MOUSE_CLICK_OFFSET},
+          clientY: canvasRect.top + #{new_y} + #{MOUSE_CLICK_OFFSET},
+          bubbles: true
+        }));
+      })();
+    JS
+    
+    sleep ASYNC_WAIT
+  end
+
+  # Simulate dragging a node with Shift key held (drag node only, no children)
+  # @param server_id [Integer] The database ID of the node
+  # @param new_x [Integer] Target X position
+  # @param new_y [Integer] Target Y position
+  def drag_node_with_shift(server_id, new_x, new_y)
+    client_id = find_node_client_id(server_id)
+    
+    # Get current position from store
+    current = page.evaluate_script(<<~JS)
+      (function() {
+        const node = window.editorAPI.store.getNode('#{client_id}');
+        return { x: node.position.x, y: node.position.y };
+      })();
+    JS
+    
+    current_x = current['x']
+    current_y = current['y']
+    
+    # Mouse down with Shift key at current position
+    page.execute_script(<<~JS)
+      (function() {
+        const el = document.querySelector('[data-client-id="#{client_id}"]');
+        const canvas = document.getElementById('nodes-canvas');
+        const canvasRect = canvas.getBoundingClientRect();
+        
+        el.dispatchEvent(new MouseEvent('mousedown', {
+          clientX: canvasRect.left + #{current_x} + #{MOUSE_CLICK_OFFSET},
+          clientY: canvasRect.top + #{current_y} + #{MOUSE_CLICK_OFFSET},
+          button: 0,
+          shiftKey: true,
+          bubbles: true
+        }));
+      })();
+    JS
+    
+    # Mouse move to new position
+    page.execute_script(<<~JS)
+      (function() {
+        const canvas = document.getElementById('nodes-canvas');
+        const canvasRect = canvas.getBoundingClientRect();
+        
+        document.dispatchEvent(new MouseEvent('mousemove', {
+          clientX: canvasRect.left + #{new_x} + #{MOUSE_CLICK_OFFSET},
+          clientY: canvasRect.top + #{new_y} + #{MOUSE_CLICK_OFFSET},
+          bubbles: true
+        }));
+      })();
+    JS
+    
+    # Mouse up at new position
+    page.execute_script(<<~JS)
+      (function() {
+        const canvas = document.getElementById('nodes-canvas');
+        const canvasRect = canvas.getBoundingClientRect();
+        
+        document.dispatchEvent(new MouseEvent('mouseup', {
+          clientX: canvasRect.left + #{new_x} + #{MOUSE_CLICK_OFFSET},
+          clientY: canvasRect.top + #{new_y} + #{MOUSE_CLICK_OFFSET},
+          bubbles: true
+        }));
+      })();
+    JS
+    
+    sleep ASYNC_WAIT
+  end
+
+  # Assert that a node is at a specific position
+  # @param server_id [Integer] The database ID of the node
+  # @param expected_x [Integer] Expected X position
+  # @param expected_y [Integer] Expected Y position
+  def expect_node_position(server_id, expected_x, expected_y)
+    client_id = find_node_client_id(server_id)
+    actual = page.evaluate_script(<<~JS)
+      (function() {
+        const node = window.editorAPI.store.getNode('#{client_id}');
+        return { x: node.position.x, y: node.position.y };
+      })();
+    JS
+    expect(actual['x']).to eq(expected_x)
+    expect(actual['y']).to eq(expected_y)
   end
 end

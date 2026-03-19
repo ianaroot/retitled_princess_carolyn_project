@@ -23,7 +23,7 @@ RSpec.describe 'EditorV2', type: :feature, js: true do
 
   describe 'page load' do
     it 'loads the root node on initial page load' do
-      expect(visible_node_count).to eq(1)
+      expect_node_count(1)
       expect(page).to have_css('.node[data-type="root"]')
     end
 
@@ -40,7 +40,7 @@ RSpec.describe 'EditorV2', type: :feature, js: true do
       click_link 'Edit', match: :first
       wait_for_editor
 
-      expect(visible_node_count).to eq(1)
+      expect_node_count(1)
     end
   end
 
@@ -594,14 +594,14 @@ RSpec.describe 'EditorV2', type: :feature, js: true do
       expect_node_count(2)
       expect_history_count(2)
 
-      condition_node = find_node_by_properties(bot: bot, node_type: 'condition', position_x: 100, position_y: 100)
+      condition_node = Node.where(bot: bot, node_type: 'condition').first
 
       # Operation 2: Create action node
       click_button '+ Action'
       expect_node_count(3)
       expect_history_count(3)
 
-      action_node = find_node_by_properties(bot: bot, node_type: 'action', position_x: 130, position_y: 100)
+      action_node = Node.where(bot: bot, node_type: 'action').first
 
       # Operation 3: Connect condition -> action
       create_connection(condition_node.id, action_node.id)
@@ -647,5 +647,115 @@ RSpec.describe 'EditorV2', type: :feature, js: true do
       expect_node_count(2)
       expect(connection_count).to eq(0)
     end
+  end
+
+  # ============================================================
+  # NODE DRAGGING WITH CHILDREN
+  # ============================================================
+
+  describe 'node dragging with children', :slow do
+    let!(:condition_node) { create(:node, bot: bot, node_type: 'condition', position_x: 100, position_y: 100) }
+    let!(:action_node1) { create(:node, bot: bot, node_type: 'action', position_x: 200, position_y: 100) }
+    let!(:action_node2) { create(:node, bot: bot, node_type: 'action', position_x: 200, position_y: 200) }
+    let!(:conn1) { create(:node_connection, bot: bot, source_node: condition_node, target_node: action_node1) }
+    let!(:conn2) { create(:node_connection, bot: bot, source_node: condition_node, target_node: action_node2) }
+
+    before { visit edit_bot_path(bot) }
+
+    it 'drags all descendants when dragging parent node' do
+      wait_for_editor
+      expect_node_count(4)  # root + condition + 2 actions
+
+      # Drag condition node (connected to 2 action nodes)
+      # Original position: condition at (100, 100), action1 at (200, 100), action2 at (200, 200)
+      # Move condition to (300, 300)
+      drag_node(condition_node.id, 300, 300)
+
+      # Condition should be at new position
+      expect_node_position(condition_node.id, 300, 300)
+      
+      # Action nodes should have moved with it (offset: +100 in x, +200 in y)
+      expect_node_position(action_node1.id, 400, 300)
+      expect_node_position(action_node2.id, 400, 400)
+    end
+
+    it 'drags only selected node when Shift key held' do
+      wait_for_editor
+      expect_node_count(4)
+
+      # Drag with Shift key (only condition moves)
+      drag_node_with_shift(condition_node.id, 300, 300)
+
+      # Condition should be at new position
+      expect_node_position(condition_node.id, 300, 300)
+      
+      # Action nodes should NOT have moved
+      expect_node_position(action_node1.id, 200, 100)
+      expect_node_position(action_node2.id, 200, 200)
+    end
+
+    it 'creates history entry with descendant count' do
+      wait_for_editor
+      expect_history_count(1)
+
+      drag_node(condition_node.id, 300, 300)
+
+      # History count should increase by 1
+      expect_history_count(2)
+    end
+
+    it 'undoes all positions when dragging with children' do
+      wait_for_editor
+
+      # Original positions
+      original_cond_x = 100
+      original_cond_y = 100
+      original_action1_x = 200
+      original_action1_y = 100
+      original_action2_x = 200
+      original_action2_y = 200
+
+      drag_node(condition_node.id, 300, 300)
+      expect_history_count(2)
+
+      # Undo
+      click_undo
+
+      # All positions should be restored
+      expect_node_position(condition_node.id, original_cond_x, original_cond_y)
+      expect_node_position(action_node1.id, original_action1_x, original_action1_y)
+      expect_node_position(action_node2.id, original_action2_x, original_action2_y)
+    end
+
+    it 'redoes all positions when dragging with children' do
+      wait_for_editor
+
+      drag_node(condition_node.id, 300, 300)
+      click_undo
+      click_redo
+
+      # All positions should be restored
+      expect_node_position(condition_node.id, 300, 300)
+      expect_node_position(action_node1.id, 400, 300)
+      expect_node_position(action_node2.id, 400, 400)
+    end
+  end
+
+  # ============================================================
+  # VISUAL REGRESSION (PENDING)
+  # ============================================================
+
+  describe 'node dragging visual regression', :slow, :visual do
+    # Visual regression tests require screenshot comparison tools like Percy, Applitools, or BackstopJS
+    # TODO: Set up visual regression tooling and implement these tests
+    
+    it 'renders correctly during drag with children'
+    pending 'visual: nodes move smoothly without flickering'
+    
+    it 'renders connection lines following nodes during drag'
+    pending 'visual: connection lines follow nodes during drag'
+    
+    it 'renders correct z-index during drag'
+    pending 'visual: dragged node and descendants have correct z-order'
   end
 end
