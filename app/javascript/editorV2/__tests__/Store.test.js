@@ -478,5 +478,78 @@ describe('Store', () => {
       store.setEditingNode(null)
       expect(store.getEditingNode()).toBe(null)
     })
+    
   })
+  describe('getNodesByType', () => {
+  it('returns empty array when no nodes of type exist', () => {
+    const root = new Node({ clientId: 'r1', type: 'root', position: { x: 0, y: 0 } })
+    store.addNode(root)
+    
+    expect(store.getNodesByType('condition')).toHaveLength(0)
+  })
+  it('returns all nodes of a specific type', () => {
+    const root = new Node({ clientId: 'r1', type: 'root', position: { x: 0, y: 0 } })
+    const cond1 = new Node({ clientId: 'c1', type: 'condition', position: { x: 100, y: 100 } })
+    const cond2 = new Node({ clientId: 'c2', type: 'condition', position: { x: 200, y: 200 } })
+    
+    store.addNode(root)
+    store.addNode(cond1)
+    store.addNode(cond2)
+    
+    const conditions = store.getNodesByType('condition')
+    expect(conditions).toHaveLength(2)
+    expect(conditions).toEqual(expect.arrayContaining([cond1, cond2]))
+  })
+  it('returns empty array for unknown type', () => {
+    const root = new Node({ clientId: 'r1', type: 'root', position: { x: 0, y: 0 } })
+    store.addNode(root)
+    
+    expect(store.getNodesByType('unknown')).toHaveLength(0)
+  })
+})
+describe('getDescendantIds', () => {
+  beforeEach(() => {
+    //root -> condition -> action
+    //               \-> action2
+    const root = new Node({ clientId: 'root', type: 'root', position: { x: 0, y: 0 } })
+    const cond = new Node({ clientId: 'cond', type: 'condition', position: { x: 100, y: 100 } })
+    const action1 = new Node({ clientId: 'action1', type: 'action', position: { x: 200, y: 100 } })
+    const action2 = new Node({ clientId: 'action2', type: 'action', position: { x: 200, y: 200 } })
+    
+    store.addNode(root)
+    store.addNode(cond)
+    store.addNode(action1)
+    store.addNode(action2)
+    
+    store.addConnection(new Connection({ clientId: 'c1', sourceId: 'root', targetId: 'cond' }))
+    store.addConnection(new Connection({ clientId: 'c2', sourceId: 'cond', targetId: 'action1' }))
+    store.addConnection(new Connection({ clientId: 'c3', sourceId: 'cond', targetId: 'action2' }))
+  })
+  it('returns empty set for node with no descendants', () => {
+    const descendants = store.getDescendantIds('action1')
+    expect(descendants.size).toBe(0)
+  })
+  it('returns direct children (one level deep)', () => {
+    const descendants = store.getDescendantIds('root')
+    expect(descendants.has('cond')).toBe(true)
+    expect(descendants.size).toBe(3) // cond, action1, action2
+  })
+  it('returns all descendants (multiple levels)', () => {
+    const descendants = store.getDescendantIds('root')
+    expect(descendants.has('cond')).toBe(true)
+    expect(descendants.has('action1')).toBe(true)
+    expect(descendants.has('action2')).toBe(true)
+  })
+  it('handles branching correctly', () => {
+    const descendants = store.getDescendantIds('cond')
+    expect(descendants.has('action1')).toBe(true)
+    expect(descendants.has('action2')).toBe(true)
+    expect(descendants.has('root')).toBe(false) // Not a descendant
+  })
+  it('returns empty set for non-existent node', () => {
+    const descendants = store.getDescendantIds('nonexistent')
+    expect(descendants.size).toBe(0)
+  })
+})
+  
 })
