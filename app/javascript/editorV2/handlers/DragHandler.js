@@ -84,9 +84,9 @@ class DragHandler {
       return
     }
     
-    // Don't start drag on root nodes (they shouldn't move)
     const node = this.store.getNode(clientId)
-    if (!node || node.type === 'root') {
+    // this seems like overkill?
+    if (!node) {
       return
     }
     
