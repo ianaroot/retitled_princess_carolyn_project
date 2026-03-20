@@ -8,6 +8,7 @@ import API from './api.js'
 import SyncManager from './sync/SyncManager.js'
 import NodeRenderer from './rendering/NodeRenderer.js'
 import ConnectionRenderer from './rendering/ConnectionRenderer.js'
+import CanvasViewport from './rendering/CanvasViewport.js'
 import DragHandler from './handlers/DragHandler.js'
 import ConnectionHandler from './handlers/ConnectionHandler.js'
 import ClickHandler from './handlers/ClickHandler.js'
@@ -34,12 +35,28 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
   if (!svgContainer) {
     throw new Error('SVG container element is required')
   }
+
+  const workspace = document.getElementById('canvas-workspace')
+  const scene = document.getElementById('canvas-scene')
+  const canvasContainer = container.closest('.canvas-container')
+
+  if (!workspace || !scene || !canvasContainer) {
+    throw new Error('Canvas viewport elements are required')
+  }
   
   // 1. Initialize core components (explicit dependencies, no circular refs)
   const api = new API(botId)
   const store = new Store()
   const history = new History(store, MAX_HISTORY)
   const syncManager = new SyncManager(store, history, api)
+  const canvasViewport = new CanvasViewport(
+    canvasContainer,
+    workspace,
+    scene,
+    container,
+    svgContainer,
+    store
+  )
   
   // 2. Initialize renderers BEFORE loading data (so they receive GRAPH_REPLACE event)
   const nodeRenderer = new NodeRenderer(container, store, api)
@@ -136,6 +153,9 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
   })
   
   updateUndoRedoUI(history)
+  requestAnimationFrame(() => {
+    canvasViewport.fitToGraph()
+  })
   
   // 8. Return public API
   return {
@@ -145,6 +165,7 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
     api,
     nodeRenderer,
     connectionRenderer,
+    canvasViewport,
     dragHandler,
     connectionHandler,
     clickHandler,
@@ -178,6 +199,7 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
     destroy: () => {
       nodeRenderer.destroy()
       connectionRenderer.destroy()
+      canvasViewport.destroy()
       dragHandler.destroy()
       connectionHandler.destroy()
       clickHandler.destroy()

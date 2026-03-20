@@ -180,6 +180,17 @@
   border-radius: 8px;
 }
 
+.canvas-workspace {
+  position: relative;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+.canvas-scene {
+  position: relative;
+  transform-origin: top left;
+}
+
 .connections-layer line {
   pointer-events: stroke;
   stroke: #CC7722;
@@ -291,8 +302,6 @@
   position: absolute;
   top: 0;
   left: 0;
-  min-width: 100%;
-  min-height: 100%;
   pointer-events: none;
   z-index: 1;
 }
@@ -301,8 +310,6 @@
   position: absolute;
   top: 0;
   left: 0;
-  min-width: 100%;
-  min-height: 100%;
   z-index: 2;
   pointer-events: none;
 }

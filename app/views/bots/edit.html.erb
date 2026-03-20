@@ -40,15 +40,18 @@
 
   <div class="editor-main">
     <div class="canvas-container">
-      <div id="nodes-canvas" class="nodes-layer" data-bot-id="<%= @bot.id %>">
-        <!-- Nodes rendered by NodeRenderer -->
+      <div id="canvas-workspace" class="canvas-workspace">
+        <div id="canvas-scene" class="canvas-scene">
+          <div id="nodes-canvas" class="nodes-layer" data-bot-id="<%= @bot.id %>">
+            <!-- Nodes rendered by NodeRenderer -->
+          </div>
+          <svg id="connections-canvas" class="connections-layer">
+            <!-- Connections rendered by ConnectionRenderer -->
+          </svg>
+        </div>
       </div>
-      <svg id="connections-canvas" class="connections-layer">
-        <!-- Connections rendered by ConnectionRenderer -->
-      </svg>
     </div>
   </div>
 
   <%= render "bots/nodes/editor" %>
 </div>
-

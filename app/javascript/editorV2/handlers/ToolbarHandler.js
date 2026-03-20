@@ -8,7 +8,6 @@
  * - Add Node buttons (+ Condition, + Action)
  * - Undo/Redo buttons
  * - Delete button (if not handled by ClickHandler)
- * - Zoom controls (future - deferred for MVP)
  */
 class ToolbarHandler {
   /**
@@ -62,6 +61,7 @@ class ToolbarHandler {
     if (deleteBtn) {
       deleteBtn.addEventListener('click', () => this.handleDeleteClick())
     }
+
   }
   
   /**

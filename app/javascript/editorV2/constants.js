@@ -5,6 +5,13 @@
 export const NODE_WIDTH = 100
 export const NODE_HEIGHT = 60
 export const CONNECTOR_SIZE = 14
+export const NODE_DIMENSIONS = {
+  root: { width: 120, height: 120 },
+  condition: { width: 100, height: 60 },
+  action: { width: 100, height: 60 },
+  connector: { width: 40, height: 40 },
+  default: { width: NODE_WIDTH, height: NODE_HEIGHT }
+}
 
 // Connection styling
 export const CONNECTION_COLOR = '#4CAF50'
@@ -18,6 +25,14 @@ export const TEMP_LINE_STROKE_DASHARRAY = '5,5'
 
 // History
 export const MAX_HISTORY = 50
+
+// Viewport / zoom behavior
+export const ZOOM_DEFAULT = 1
+export const ZOOM_MIN = 0.25
+export const ZOOM_MAX = 2
+export const ZOOM_STEP = 0.1
+export const VIEWPORT_PADDING = 200
+export const FIT_PADDING = 120
 
 // Node type colors (matching existing CSS)
 export const NODE_COLORS = {
