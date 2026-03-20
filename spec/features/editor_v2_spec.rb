@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe 'EditorV2', type: :feature, js: true do
+RSpec.describe 'EditorV2', type: :feature, js: true, slow: true do
   include EditorV2Helpers
 
   let(:user) { create(:user) }
@@ -466,7 +466,7 @@ RSpec.describe 'EditorV2', type: :feature, js: true do
 
       # Go offline to simulate network failure
       go_offline
-      click_undo
+      click_undo_without_waiting
 
       # Error dialog should appear
       expect(page).to have_css('.undo-error-dialog', wait: 3)
@@ -499,7 +499,7 @@ RSpec.describe 'EditorV2', type: :feature, js: true do
       expect_node_count(2)
 
       go_offline
-      click_undo
+      click_undo_without_waiting
 
       expect(page).to have_css('.undo-error-dialog', wait: 3)
 
@@ -516,7 +516,7 @@ RSpec.describe 'EditorV2', type: :feature, js: true do
       expect_node_count(1)
 
       go_offline
-      click_redo
+      click_redo_without_waiting
 
       expect(page).to have_css('.undo-error-dialog', wait: 3)
 

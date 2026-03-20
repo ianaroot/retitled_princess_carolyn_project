@@ -107,6 +107,16 @@ module EditorV2Helpers
     expect(page).not_to have_css('.btn-redo.loading', wait: 2)
   end
 
+  # Click undo button without waiting for loading (for error scenarios)
+  def click_undo_without_waiting
+    find('.btn-undo').click
+  end
+
+  # Click redo button without waiting for loading (for error scenarios)
+  def click_redo_without_waiting
+    find('.btn-redo').click
+  end
+
   # Select a node by clicking it
   # @param server_id [Integer] The database ID of the node
   def select_node(server_id)
