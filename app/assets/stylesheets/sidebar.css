@@ -1,0 +1,206 @@
+/* ============================================
+   SIDEBAR LAYOUT
+   ============================================ */
+
+/* Default: sidebar VISIBLE on desktop */
+[data-controller="sidebar"] {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 240px;
+  height: 100vh;
+  background-color: #252526;
+  border-right: 1px solid #3F3F46;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar__content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.5rem 1rem;
+}
+
+/* ============================================
+   SIDEBAR LOGO (SVG)
+   ============================================ */
+
+.sidebar__logo-icon {
+  flex-shrink: 0;
+  margin-bottom: 0.5rem;
+}
+
+.sidebar__logo {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.sidebar__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #E5E5E5;
+  text-decoration: none;
+}
+
+/* ============================================
+   NAVIGATION
+   ============================================ */
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  color: #9CA3AF;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.sidebar__link:hover {
+  background-color: #2D2D2D;
+  color: #E5E5E5;
+}
+
+.sidebar__link--active {
+  background-color: rgba(168, 85, 247, 0.1);
+  border-left-color: #A855F7;
+  color: #A855F7;
+}
+
+.sidebar__link--active:hover {
+  color: #C084FC;
+}
+
+.sidebar__link--primary {
+  background-color: #A855F7;
+  color: #1E1E1E;
+  font-weight: 600;
+}
+
+.sidebar__link--primary:hover {
+  background-color: #C084FC;
+  color: #1E1E1E;
+}
+
+/* ============================================
+   AUTH SECTION
+   ============================================ */
+
+.sidebar__auth {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid #3F3F46;
+}
+
+.sidebar__user {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  color: #9CA3AF;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__link--signout {
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* ============================================
+   HAMBURGER BUTTON (MOBILE)
+   ============================================ */
+
+.hamburger {
+  display: none;
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1001;
+  padding: 0.5rem;
+  background-color: #252526;
+  border: 1px solid #3F3F46;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.hamburger:hover {
+  background-color: #2D2D2D;
+}
+
+.hamburger__line {
+  display: block;
+  width: 1.5rem;
+  height: 2px;
+  background-color: #E5E5E5;
+  margin: 0.3rem 0;
+  transition: transform 0.3s, opacity 0.3s;
+}
+
+/* Hamburger visible only on mobile */
+@media (max-width: 767px) {
+  .hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+  [data-controller="sidebar"] {
+    transform: translateX(-240px);
+  }
+  
+  [data-controller="sidebar"].sidebar--open {
+    transform: translateX(0);
+  }
+}
+
+/* ============================================
+   CLOSED STATE (for toggle functionality)
+   ============================================ */
+
+.sidebar--closed {
+  transform: translateX(-240px);
+}
+
+/* ============================================
+   OVERLAY (MOBILE)
+   ============================================ */
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay--visible {
+  opacity: 1;
+  pointer-events: auto;
+}

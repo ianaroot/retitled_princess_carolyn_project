@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>RetitledPrincessCarolynProject</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Pawnstorm</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <%= csrf_meta_tags %>
     <%# Always include CSRF token for JavaScript API calls even when forgery protection is disabled %>
     <% if protect_against_forgery? == false && respond_to?(:form_authenticity_token) %>
@@ -10,14 +10,26 @@
       <meta name="csrf-token" content="<%= form_authenticity_token %>">
     <% end %>
     <%= csp_meta_tag %>
-
+    
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
 
   <body data-environment="<%= Rails.env %>">
-    <p class="notice"><%= notice %></p> 
-    <p class="alert"><%= alert %></p> 
-    <%= yield %>
+    <%= render "shared/sidebar" %>
+    
+    <main class="content-wrapper">
+      <div class="page-content">
+        <% if notice.present? %>
+          <div class="notice"><%= notice %></div>
+        <% end %>
+        
+        <% if alert.present? %>
+          <div class="alert"><%= alert %></div>
+        <% end %>
+        
+        <%= yield %>
+      </div>
+    </main>
   </body>
 </html>
