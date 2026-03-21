@@ -33,6 +33,8 @@ export const ZOOM_MAX = 2
 export const ZOOM_STEP = 0.1
 export const VIEWPORT_PADDING = 200
 export const FIT_PADDING = 120
+export const DRAG_AUTOPAN_EDGE_THRESHOLD = 24
+export const DRAG_AUTOPAN_SPEED = 1
 
 // Node type colors (matching existing CSS)
 export const NODE_COLORS = {

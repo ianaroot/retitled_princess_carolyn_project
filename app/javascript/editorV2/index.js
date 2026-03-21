@@ -60,7 +60,7 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
   
   // 2. Initialize renderers BEFORE loading data (so they receive GRAPH_REPLACE event)
   const nodeRenderer = new NodeRenderer(container, store, api)
-  const connectionRenderer = new ConnectionRenderer(svgContainer, store)
+  const connectionRenderer = new ConnectionRenderer(svgContainer, store, canvasViewport)
   connectionRenderer.container = container
   
   // 3. Load existing bot data
@@ -75,11 +75,11 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
   }
   
 // 4. Initialize handlers (pass history explicitly)
-  const dragHandler = new DragHandler(store, syncManager, history)
-  const connectionHandler = new ConnectionHandler(store, syncManager, connectionRenderer)
+  const dragHandler = new DragHandler(store, syncManager, history, canvasViewport)
+  const connectionHandler = new ConnectionHandler(store, syncManager, connectionRenderer, canvasViewport)
   const clickHandler = new ClickHandler(store, history, editorPanel)
   const keyboardHandler = new KeyboardHandler(store, history, syncManager)
-  const toolbarHandler = new ToolbarHandler(store, history, syncManager, container, clickHandler)
+  const toolbarHandler = new ToolbarHandler(store, history, syncManager, container, clickHandler, canvasViewport)
   
   // Set syncManager on clickHandler for delete
   clickHandler.setSyncManager(syncManager)

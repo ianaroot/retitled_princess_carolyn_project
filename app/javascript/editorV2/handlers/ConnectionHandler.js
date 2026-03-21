@@ -22,10 +22,11 @@ class ConnectionHandler {
    * @param {SyncManager} syncManager - SyncManager instance
    * @param {ConnectionRenderer} connectionRenderer - ConnectionRenderer instance
    */
-  constructor(store, syncManager, connectionRenderer) {
+  constructor(store, syncManager, connectionRenderer, viewport = null) {
     this.store = store
     this.syncManager = syncManager
     this.connectionRenderer = connectionRenderer
+    this.viewport = viewport
     
     // Connection drag state
     this.isConnecting = false
@@ -79,9 +80,8 @@ class ConnectionHandler {
     event.preventDefault()
     event.stopPropagation()
     
-    // Don't start on root (no outgoing connections)
     const node = this.store.getNode(clientId)
-    if (!node || node.type === 'root') {
+    if (!node) {
       return
     }
     
@@ -104,7 +104,7 @@ class ConnectionHandler {
     this.tempLine.setAttribute('stroke-dasharray', '5,5')
     
     // Set initial position
-    const { x, y } = this.getConnectorPosition(sourceConnector, 'output')
+    const { x, y } = this.getConnectorPosition(sourceConnector)
     this.tempLine.setAttribute('x1', x)
     this.tempLine.setAttribute('y1', y)
     this.tempLine.setAttribute('x2', x)
@@ -132,19 +132,14 @@ class ConnectionHandler {
       return
     }
     
-    // Get canvas container
-    const canvas = document.getElementById('nodes-canvas')
-    if (!canvas) {
-      return
+    const pointer = this.viewport?.screenToGraphPoint(event.clientX, event.clientY) || {
+      x: event.clientX,
+      y: event.clientY
     }
     
-    const canvasRect = canvas.getBoundingClientRect()
-    const x = event.clientX - canvasRect.left
-    const y = event.clientY - canvasRect.top
-    
     // Update temp line endpoint
-    this.tempLine.setAttribute('x2', x)
-    this.tempLine.setAttribute('y2', y)
+    this.tempLine.setAttribute('x2', pointer.x)
+    this.tempLine.setAttribute('y2', pointer.y)
   }
   
   /**
@@ -230,22 +225,10 @@ class ConnectionHandler {
   /**
    * Get connector position relative to canvas
    * @param {HTMLElement} connector - Connector element
-   * @param {string} type - 'input' or 'output'
    * @returns {{ x: number, y: number }}
    */
-  getConnectorPosition(connector, type) {
-    const canvas = document.getElementById('nodes-canvas')
-    if (!canvas) {
-      return { x: 0, y: 0 }
-    }
-    
-    const canvasRect = canvas.getBoundingClientRect()
-    const connRect = connector.getBoundingClientRect()
-    
-    return {
-      x: connRect.left - canvasRect.left + connRect.width / 2,
-      y: connRect.top - canvasRect.top + connRect.height / 2
-    }
+  getConnectorPosition(connector) {
+    return this.viewport?.getElementCenterGraphPoint(connector) || { x: 0, y: 0 }
   }
   
   /**

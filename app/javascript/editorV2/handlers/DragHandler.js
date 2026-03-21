@@ -1,7 +1,11 @@
 // handlers/DragHandler.js
 // Handles node drag operations with optimistic updates
 
-import { EVENTS } from '../constants.js'
+import {
+  DRAG_AUTOPAN_EDGE_THRESHOLD,
+  DRAG_AUTOPAN_SPEED,
+  EVENTS
+} from '../constants.js'
 
 /**
  * DragHandler
@@ -25,10 +29,11 @@ class DragHandler {
    * @param {SyncManager} syncManager - SyncManager instance
    * @param {History} history - History instance (passed for UI updates only)
    */
-  constructor(store, syncManager, history) {
+  constructor(store, syncManager, history, viewport = null) {
     this.store = store
     this.syncManager = syncManager
     this.history = history
+    this.viewport = viewport
     
     // Drag state
     this.isDragging = false
@@ -37,6 +42,9 @@ class DragHandler {
     this.startPosition = null
     this.offset = { x: 0, y: 0 }
     this.hasMoved = false
+    this.lastPointerClient = null
+    this.autoPanFrameId = null
+    this.autoPanRemainder = { x: 0, y: 0 }
     
     // Child drag state
     this.shouldDragChildren = true
@@ -45,6 +53,7 @@ class DragHandler {
     // Pre-bound handlers (fixes removeEventListener bug)
     this.boundHandleMouseMove = this.handleMouseMove.bind(this)
     this.boundHandleMouseUp = this.handleMouseUp.bind(this)
+    this.boundAutoPanStep = this.autoPanStep.bind(this)
     
     // Element-to-clientId mappings
     this.attachedElements = new WeakMap()
@@ -124,18 +133,25 @@ class DragHandler {
     }
     
     // Calculate offset (where in the node the mouse clicked)
-    const rect = element.getBoundingClientRect()
+    this.lastPointerClient = { x: event.clientX, y: event.clientY }
+    this.autoPanRemainder = { x: 0, y: 0 }
+    const pointer = this.viewport?.screenToGraphPoint(event.clientX, event.clientY) || {
+      x: event.clientX,
+      y: event.clientY
+    }
     this.offset = {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top
+      x: pointer.x - node.position.x,
+      y: pointer.y - node.position.y
     }
     
     // Add visual feedback
     element.classList.add('dragging')
+    this.viewport?.beginInteraction()
     
     // Attach document-level handlers for drag
     document.addEventListener('mousemove', this.boundHandleMouseMove)
     document.addEventListener('mouseup', this.boundHandleMouseUp)
+    this.startAutoPanLoop()
     
     // Update selection
     this.store.setSelectedNode(clientId)
@@ -149,51 +165,9 @@ class DragHandler {
     if (!this.isDragging || !this.draggedClientId) {
       return
     }
-    
-    // Get canvas container for position calculation
-    const canvas = document.getElementById('nodes-canvas')
-    if (!canvas) {
-      return
-    }
-    
-    // Calculate new position
-    const canvasRect = canvas.getBoundingClientRect()
-    const x = event.clientX - canvasRect.left - this.offset.x
-    const y = event.clientY - canvasRect.top - this.offset.y
-    
-    // Skip if position hasn't changed
-    const node = this.store.getNode(this.draggedClientId)
-    if (node && node.position.x === x && node.position.y === y) {
-      return
-    }
-    
-    this.hasMoved = true
-    
-    // Optimistic update: update dragged node
-    this.store.updateNode(this.draggedClientId, { position: { x, y } })
-    
-    // Update DOM for dragged node directly for smoother rendering
-    const element = document.querySelector(`[data-client-id="${this.draggedClientId}"]`)
-    if (element) {
-      element.style.left = `${x}px`
-      element.style.top = `${y}px`
-    }
-    
-    // Update all descendants with same delta
-    if (this.shouldDragChildren) {
-      this.childOffsets.forEach((offset, childId) => {
-        const childX = x + offset.dx
-        const childY = y + offset.dy
-        
-        this.store.updateNode(childId, { position: { x: childX, y: childY } })
-        
-        const childElement = document.querySelector(`[data-client-id="${childId}"]`)
-        if (childElement) {
-          childElement.style.left = `${childX}px`
-          childElement.style.top = `${childY}px`
-        }
-      })
-    }
+
+    this.lastPointerClient = { x: event.clientX, y: event.clientY }
+    this.updateDragPosition(event.clientX, event.clientY)
   }
   
   /**
@@ -201,6 +175,9 @@ class DragHandler {
    * @param {MouseEvent} event
    */
   handleMouseUp(event) {
+    this.stopAutoPanLoop()
+    this.viewport?.endInteraction()
+
     // Remove document handlers immediately
     document.removeEventListener('mousemove', this.boundHandleMouseMove)
     document.removeEventListener('mouseup', this.boundHandleMouseUp)
@@ -260,7 +237,123 @@ class DragHandler {
     this.draggedNode = null
     this.startPosition = null
     this.hasMoved = false
+    this.lastPointerClient = null
+    this.autoPanRemainder = { x: 0, y: 0 }
     this.childOffsets.clear()
+  }
+
+  updateDragPosition(clientX, clientY) {
+    const pointer = this.viewport?.screenToGraphPoint(clientX, clientY) || {
+      x: clientX,
+      y: clientY
+    }
+    const x = pointer.x - this.offset.x
+    const y = pointer.y - this.offset.y
+
+    const node = this.store.getNode(this.draggedClientId)
+    if (node && node.position.x === x && node.position.y === y) {
+      return
+    }
+
+    this.hasMoved = true
+    this.store.updateNode(this.draggedClientId, { position: { x, y } })
+
+    const element = document.querySelector(`[data-client-id="${this.draggedClientId}"]`)
+    if (element) {
+      element.style.left = `${x}px`
+      element.style.top = `${y}px`
+    }
+
+    if (this.shouldDragChildren) {
+      this.childOffsets.forEach((offset, childId) => {
+        const childX = x + offset.dx
+        const childY = y + offset.dy
+
+        this.store.updateNode(childId, { position: { x: childX, y: childY } })
+
+        const childElement = document.querySelector(`[data-client-id="${childId}"]`)
+        if (childElement) {
+          childElement.style.left = `${childX}px`
+          childElement.style.top = `${childY}px`
+        }
+      })
+    }
+  }
+
+  startAutoPanLoop() {
+    if (!this.viewport?.container || this.autoPanFrameId) {
+      return
+    }
+
+    this.autoPanFrameId = requestAnimationFrame(this.boundAutoPanStep)
+  }
+
+  stopAutoPanLoop() {
+    if (!this.autoPanFrameId) {
+      return
+    }
+
+    cancelAnimationFrame(this.autoPanFrameId)
+    this.autoPanFrameId = null
+  }
+
+  autoPanStep() {
+    this.autoPanFrameId = null
+
+    if (!this.isDragging || !this.lastPointerClient || !this.viewport?.container) {
+      return
+    }
+
+    const container = this.viewport.container
+    const rect = container.getBoundingClientRect()
+    const deltaX = this.getAutoPanDelta(
+      this.lastPointerClient.x,
+      rect.left,
+      rect.right
+    )
+    const deltaY = this.getAutoPanDelta(
+      this.lastPointerClient.y,
+      rect.top,
+      rect.bottom
+    )
+
+    if (deltaX !== 0 || deltaY !== 0) {
+      this.autoPanRemainder.x += deltaX
+      this.autoPanRemainder.y += deltaY
+
+      const scrollDeltaX = this.extractScrollDelta('x')
+      const scrollDeltaY = this.extractScrollDelta('y')
+
+      if (scrollDeltaX !== 0 || scrollDeltaY !== 0) {
+        container.scrollLeft += scrollDeltaX
+        container.scrollTop += scrollDeltaY
+        this.updateDragPosition(this.lastPointerClient.x, this.lastPointerClient.y)
+      }
+    }
+
+    this.autoPanFrameId = requestAnimationFrame(this.boundAutoPanStep)
+  }
+
+  getAutoPanDelta(pointer, minEdge, maxEdge) {
+    const distanceToMin = pointer - minEdge
+    if (distanceToMin < DRAG_AUTOPAN_EDGE_THRESHOLD) {
+      return -DRAG_AUTOPAN_SPEED
+    }
+
+    const distanceToMax = maxEdge - pointer
+    if (distanceToMax < DRAG_AUTOPAN_EDGE_THRESHOLD) {
+      return DRAG_AUTOPAN_SPEED
+    }
+
+    return 0
+  }
+
+  extractScrollDelta(axis) {
+    const remainder = this.autoPanRemainder[axis]
+    const delta = remainder > 0 ? Math.floor(remainder) : Math.ceil(remainder)
+
+    this.autoPanRemainder[axis] = remainder - delta
+    return delta
   }
   
   /**
@@ -312,12 +405,16 @@ class DragHandler {
       // Remove handlers
       document.removeEventListener('mousemove', this.boundHandleMouseMove)
       document.removeEventListener('mouseup', this.boundHandleMouseUp)
+      this.stopAutoPanLoop()
+      this.viewport?.endInteraction()
       
       // Reset state
       this.isDragging = false
       this.draggedClientId = null
       this.startPosition = null
       this.hasMoved = false
+      this.lastPointerClient = null
+      this.autoPanRemainder = { x: 0, y: 0 }
       this.childOffsets.clear()
     }
   }

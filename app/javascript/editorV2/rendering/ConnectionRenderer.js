@@ -20,15 +20,17 @@ class ConnectionRenderer {
    * @param {SVGSVGElement} svgContainer - SVG element for connections
    * @param {Store} store - Store instance
    */
-  constructor(svgContainer, store) {
+  constructor(svgContainer, store, viewport = null) {
     this.svgContainer = svgContainer
     this.store = store
+    this.viewport = viewport
     
     // Map: clientId → { line, hitArea, deleteBtn }
     this.elements = new Map()
     
     // Subscribe to store updates
     this.unsubscribe = this.store.subscribe(this.handleChange.bind(this))
+    this.unsubscribeViewport = this.viewport?.subscribe(() => this.updateDeleteButtonPositions())
   }
   
   /**
@@ -169,8 +171,8 @@ class ConnectionRenderer {
     const connRect = outputConnector.getBoundingClientRect()
     
     return {
-      x: connRect.left - nodeRect.left + connRect.width / 2,
-      y: connRect.top - nodeRect.top + connRect.height / 2
+      x: (connRect.left - nodeRect.left + (connRect.width / 2)) / this.getZoom(),
+      y: (connRect.top - nodeRect.top + (connRect.height / 2)) / this.getZoom()
     }
   }
   
@@ -190,9 +192,13 @@ class ConnectionRenderer {
     const connRect = inputConnector.getBoundingClientRect()
     
     return {
-      x: connRect.left - nodeRect.left + connRect.width / 2,
-      y: connRect.top - nodeRect.top + connRect.height / 2
+      x: (connRect.left - nodeRect.left + (connRect.width / 2)) / this.getZoom(),
+      y: (connRect.top - nodeRect.top + (connRect.height / 2)) / this.getZoom()
     }
+  }
+
+  getZoom() {
+    return this.viewport?.getZoom() || 1
   }
   
   /**
@@ -238,13 +244,15 @@ class ConnectionRenderer {
     const midX = (startX + endX) / 2
     const midY = (startY + endY) / 2
     
+    const sceneMidpoint = this.viewport?.graphToScenePoint(midX, midY) || { x: midX, y: midY }
+
     const deleteBtn = document.createElement('button')
     deleteBtn.className = 'connection-delete-btn'
     deleteBtn.textContent = '×'
     deleteBtn.style.cssText = `
       position: absolute;
-      left: ${midX}px;
-      top: ${midY}px;
+      left: ${sceneMidpoint.x}px;
+      top: ${sceneMidpoint.y}px;
       width: 20px;
       height: 20px;
       background: #e94560;
@@ -333,8 +341,32 @@ class ConnectionRenderer {
     // Update delete button position
     const midX = (startX + endX) / 2
     const midY = (startY + endY) / 2
-    elements.deleteBtn.style.left = `${midX}px`
-    elements.deleteBtn.style.top = `${midY}px`
+    const sceneMidpoint = this.viewport?.graphToScenePoint(midX, midY) || { x: midX, y: midY }
+    elements.deleteBtn.style.left = `${sceneMidpoint.x}px`
+    elements.deleteBtn.style.top = `${sceneMidpoint.y}px`
+  }
+
+  updateDeleteButtonPositions() {
+    this.elements.forEach((elements, clientId) => {
+      const connection = this.store.getConnection(clientId)
+      if (!connection) {
+        return
+      }
+
+      const sourceNode = this.store.getNode(connection.sourceId)
+      const targetNode = this.store.getNode(connection.targetId)
+
+      if (!sourceNode || !targetNode) {
+        return
+      }
+
+      const midX = (elements.line.x1.baseVal.value + elements.line.x2.baseVal.value) / 2
+      const midY = (elements.line.y1.baseVal.value + elements.line.y2.baseVal.value) / 2
+      const sceneMidpoint = this.viewport?.graphToScenePoint(midX, midY) || { x: midX, y: midY }
+
+      elements.deleteBtn.style.left = `${sceneMidpoint.x}px`
+      elements.deleteBtn.style.top = `${sceneMidpoint.y}px`
+    })
   }
   
   /**
@@ -423,6 +455,7 @@ class ConnectionRenderer {
   destroy() {
     this.clear()
     this.unsubscribe()
+    this.unsubscribeViewport?.()
   }
 }
 

@@ -20,6 +20,13 @@ class CanvasViewport {
 
     this.logicalWidth = 0
     this.logicalHeight = 0
+    this.worldMinX = 0
+    this.worldMinY = 0
+    this.worldMaxX = 0
+    this.worldMaxY = 0
+    this.activeInteractions = 0
+    this.interactionBounds = null
+    this.subscribers = []
     this.rafId = null
     this.hasFittedInitialView = false
     this.zoomInButton = document.getElementById('zoom-in')
@@ -52,6 +59,17 @@ class CanvasViewport {
 
   handleResize() {
     this.scheduleRefresh()
+  }
+
+  subscribe(callback) {
+    this.subscribers.push(callback)
+
+    return () => {
+      const index = this.subscribers.indexOf(callback)
+      if (index >= 0) {
+        this.subscribers.splice(index, 1)
+      }
+    }
   }
 
   handleStoreChange(event) {
@@ -140,17 +158,89 @@ class CanvasViewport {
     const zoom = this.getZoom()
     const viewportWidth = this.container.clientWidth || 0
     const viewportHeight = this.container.clientHeight || 0
+    let prependDeltaX = 0
+    let prependDeltaY = 0
 
-    const minLogicalWidth = viewportWidth > 0 ? viewportWidth / zoom : 0
-    const minLogicalHeight = viewportHeight > 0 ? viewportHeight / zoom : 0
+    let worldMinX = 0
+    let worldMinY = 0
+    let contentWidth = viewportWidth > 0 ? viewportWidth / zoom : 0
+    let contentHeight = viewportHeight > 0 ? viewportHeight / zoom : 0
 
-    const width = Math.max(minLogicalWidth, bounds.maxX + VIEWPORT_PADDING)
-    const height = Math.max(minLogicalHeight, bounds.maxY + VIEWPORT_PADDING)
+    if (bounds.width > 0 || bounds.height > 0) {
+      const normalizedWorldMinX = bounds.minX - VIEWPORT_PADDING
+      const normalizedWorldMinY = bounds.minY - VIEWPORT_PADDING
+      let worldMaxX = bounds.maxX + VIEWPORT_PADDING
+      let worldMaxY = bounds.maxY + VIEWPORT_PADDING
+
+      if (this.interactionBounds) {
+        const previousMinX = this.interactionBounds.minX
+        const previousMinY = this.interactionBounds.minY
+
+        this.interactionBounds.minX = Math.min(this.interactionBounds.minX, normalizedWorldMinX)
+        this.interactionBounds.minY = Math.min(this.interactionBounds.minY, normalizedWorldMinY)
+        this.interactionBounds.maxX = Math.max(this.interactionBounds.maxX, worldMaxX)
+        this.interactionBounds.maxY = Math.max(this.interactionBounds.maxY, worldMaxY)
+
+        prependDeltaX = Math.max(0, previousMinX - this.interactionBounds.minX)
+        prependDeltaY = Math.max(0, previousMinY - this.interactionBounds.minY)
+
+        worldMinX = this.interactionBounds.minX
+        worldMinY = this.interactionBounds.minY
+        worldMaxX = this.interactionBounds.maxX
+        worldMaxY = this.interactionBounds.maxY
+      } else {
+        worldMinX = normalizedWorldMinX
+        worldMinY = normalizedWorldMinY
+      }
+
+      this.worldMaxX = worldMaxX
+      this.worldMaxY = worldMaxY
+      contentWidth = Math.max(contentWidth, this.worldMaxX - worldMinX)
+      contentHeight = Math.max(contentHeight, this.worldMaxY - worldMinY)
+    } else {
+      this.worldMaxX = contentWidth
+      this.worldMaxY = contentHeight
+    }
+
+    this.worldMinX = worldMinX
+    this.worldMinY = worldMinY
 
     return {
-      width: Math.ceil(width),
-      height: Math.ceil(height)
+      prependDeltaX,
+      prependDeltaY,
+      width: Math.ceil(contentWidth),
+      height: Math.ceil(contentHeight)
     }
+  }
+
+  beginInteraction() {
+    this.activeInteractions += 1
+
+    if (this.activeInteractions > 1) {
+      return
+    }
+
+    this.interactionBounds = {
+      minX: this.worldMinX,
+      minY: this.worldMinY,
+      maxX: this.worldMaxX,
+      maxY: this.worldMaxY
+    }
+  }
+
+  endInteraction() {
+    if (this.activeInteractions === 0) {
+      return
+    }
+
+    this.activeInteractions -= 1
+
+    if (this.activeInteractions > 0) {
+      return
+    }
+
+    this.interactionBounds = null
+    this.scheduleRefresh()
   }
 
   applySceneSize(width, height) {
@@ -168,17 +258,25 @@ class CanvasViewport {
 
     this.nodesLayer.style.width = `${width}px`
     this.nodesLayer.style.height = `${height}px`
+    this.nodesLayer.style.transform = `translate(${-this.worldMinX}px, ${-this.worldMinY}px)`
 
     this.svgLayer.style.width = `${width}px`
     this.svgLayer.style.height = `${height}px`
     this.svgLayer.setAttribute('width', width)
     this.svgLayer.setAttribute('height', height)
+    this.svgLayer.setAttribute('viewBox', `${this.worldMinX} ${this.worldMinY} ${width} ${height}`)
   }
 
   refresh() {
-    const { width, height } = this.computeWorkspaceSize()
+    const { width, height, prependDeltaX, prependDeltaY } = this.computeWorkspaceSize()
     this.applySceneSize(width, height)
+    if (prependDeltaX > 0 || prependDeltaY > 0) {
+      const zoom = this.getZoom()
+      this.container.scrollLeft += prependDeltaX * zoom
+      this.container.scrollTop += prependDeltaY * zoom
+    }
     this.updateZoomLabel()
+    this.subscribers.forEach(callback => callback())
   }
 
   fitToGraph() {
@@ -209,30 +307,72 @@ class CanvasViewport {
     this.refresh()
 
     requestAnimationFrame(() => {
-      this.centerOn(bounds.centerX, bounds.centerY)
+      this.centerOnGraphPoint(bounds.centerX, bounds.centerY)
       this.hasFittedInitialView = true
     })
   }
 
-  centerOn(canvasX, canvasY) {
+  graphToScenePoint(x, y) {
+    return {
+      x: x - this.worldMinX,
+      y: y - this.worldMinY
+    }
+  }
+
+  sceneToGraphPoint(x, y) {
+    return {
+      x: x + this.worldMinX,
+      y: y + this.worldMinY
+    }
+  }
+
+  centerOnGraphPoint(graphX, graphY) {
     const zoom = this.getZoom()
-    const nextScrollLeft = (canvasX * zoom) - (this.container.clientWidth / 2)
-    const nextScrollTop = (canvasY * zoom) - (this.container.clientHeight / 2)
+    const scenePoint = this.graphToScenePoint(graphX, graphY)
+    const nextScrollLeft = (scenePoint.x * zoom) - (this.container.clientWidth / 2)
+    const nextScrollTop = (scenePoint.y * zoom) - (this.container.clientHeight / 2)
 
     this.container.scrollLeft = Math.max(0, nextScrollLeft)
     this.container.scrollTop = Math.max(0, nextScrollTop)
   }
 
+  getVisibleCanvasCenter() {
+    const zoom = this.getZoom()
+    const scenePoint = {
+      x: (this.container.scrollLeft + (this.container.clientWidth / 2)) / zoom,
+      y: (this.container.scrollTop + (this.container.clientHeight / 2)) / zoom
+    }
+
+    return this.sceneToGraphPoint(scenePoint.x, scenePoint.y)
+  }
+
+  screenToGraphPoint(clientX, clientY) {
+    const workspaceRect = this.workspace.getBoundingClientRect()
+    const zoom = this.getZoom()
+    const sceneX = (clientX - workspaceRect.left) / zoom
+    const sceneY = (clientY - workspaceRect.top) / zoom
+
+    return this.sceneToGraphPoint(sceneX, sceneY)
+  }
+
+  getElementCenterGraphPoint(element) {
+    const rect = element.getBoundingClientRect()
+
+    return this.screenToGraphPoint(
+      rect.left + (rect.width / 2),
+      rect.top + (rect.height / 2)
+    )
+  }
+
   zoomBy(delta) {
     const currentZoom = this.getZoom()
-    const centerX = (this.container.scrollLeft + (this.container.clientWidth / 2)) / currentZoom
-    const centerY = (this.container.scrollTop + (this.container.clientHeight / 2)) / currentZoom
+    const center = this.getVisibleCanvasCenter()
 
     this.setZoom(currentZoom + delta)
     this.refresh()
 
     requestAnimationFrame(() => {
-      this.centerOn(centerX, centerY)
+      this.centerOnGraphPoint(center.x, center.y)
     })
   }
 
@@ -245,16 +385,7 @@ class CanvasViewport {
   }
 
   zoomReset() {
-    const currentZoom = this.getZoom()
-    const centerX = (this.container.scrollLeft + (this.container.clientWidth / 2)) / currentZoom
-    const centerY = (this.container.scrollTop + (this.container.clientHeight / 2)) / currentZoom
-
-    this.setZoom(ZOOM_DEFAULT)
-    this.refresh()
-
-    requestAnimationFrame(() => {
-      this.centerOn(centerX, centerY)
-    })
+    this.fitToGraph()
   }
 
   destroy() {
