@@ -1,8 +1,6 @@
 // handlers/ConnectionHandler.js
 // Handles connection creation and deletion
 
-import generateUUID from '../utils/uuid.js'
-
 /**
  * ConnectionHandler
  * 
@@ -57,7 +55,6 @@ class ConnectionHandler {
     
     // Find connector elements
     const outputConnector = element.querySelector('.node-connector.output')
-    const inputConnector = element.querySelector('.node-connector.input')
     
     // Output connector: start new connection
     if (outputConnector) {

@@ -28,7 +28,6 @@ class CanvasViewport {
     this.interactionBounds = null
     this.subscribers = []
     this.rafId = null
-    this.hasFittedInitialView = false
     this.zoomInButton = document.getElementById('zoom-in')
     this.zoomOutButton = document.getElementById('zoom-out')
     this.zoomResetButton = document.getElementById('zoom-reset')
@@ -293,7 +292,6 @@ class CanvasViewport {
       this.refresh()
       this.container.scrollLeft = 0
       this.container.scrollTop = 0
-      this.hasFittedInitialView = true
       return
     }
 
@@ -308,7 +306,6 @@ class CanvasViewport {
 
     requestAnimationFrame(() => {
       this.centerOnGraphPoint(bounds.centerX, bounds.centerY)
-      this.hasFittedInitialView = true
     })
   }
 

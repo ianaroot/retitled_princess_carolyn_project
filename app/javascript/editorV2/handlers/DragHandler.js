@@ -3,8 +3,7 @@
 
 import {
   DRAG_AUTOPAN_EDGE_THRESHOLD,
-  DRAG_AUTOPAN_SPEED,
-  EVENTS
+  DRAG_AUTOPAN_SPEED
 } from '../constants.js'
 
 /**
@@ -27,12 +26,10 @@ class DragHandler {
    * Create DragHandler
    * @param {Store} store - Store instance
    * @param {SyncManager} syncManager - SyncManager instance
-   * @param {History} history - History instance (passed for UI updates only)
    */
-  constructor(store, syncManager, history, viewport = null) {
+  constructor(store, syncManager, viewport = null) {
     this.store = store
     this.syncManager = syncManager
-    this.history = history
     this.viewport = viewport
     
     // Drag state
@@ -355,7 +352,7 @@ class DragHandler {
     this.autoPanRemainder[axis] = remainder - delta
     return delta
   }
-  
+
   /**
    * Check if currently dragging
    * @returns {boolean}

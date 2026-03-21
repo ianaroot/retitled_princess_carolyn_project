@@ -74,8 +74,8 @@ export async function initEditor(botId, container, svgContainer, editorPanel = n
     throw error
   }
   
-// 4. Initialize handlers (pass history explicitly)
-  const dragHandler = new DragHandler(store, syncManager, history, canvasViewport)
+// 4. Initialize handlers
+  const dragHandler = new DragHandler(store, syncManager, canvasViewport)
   const connectionHandler = new ConnectionHandler(store, syncManager, connectionRenderer, canvasViewport)
   const clickHandler = new ClickHandler(store, history, editorPanel)
   const keyboardHandler = new KeyboardHandler(store, history, syncManager)
