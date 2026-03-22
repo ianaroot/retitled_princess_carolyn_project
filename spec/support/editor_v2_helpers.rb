@@ -227,17 +227,18 @@ module EditorV2Helpers
     
     current_x = current['x']
     current_y = current['y']
+    start = graph_to_client_coordinates( current_x + MOUSE_CLICK_OFFSET, current_y + MOUSE_CLICK_OFFSET )
+    finish = graph_to_client_coordinates( new_x + MOUSE_CLICK_OFFSET, new_y + MOUSE_CLICK_OFFSET )
+
     
     # Mouse down at current position (with small offset for realistic click)
     page.execute_script(<<~JS)
       (function() {
         const el = document.querySelector('[data-client-id="#{client_id}"]');
-        const canvas = document.getElementById('nodes-canvas');
-        const canvasRect = canvas.getBoundingClientRect();
         
         el.dispatchEvent(new MouseEvent('mousedown', {
-          clientX: canvasRect.left + #{current_x} + #{MOUSE_CLICK_OFFSET},
-          clientY: canvasRect.top + #{current_y} + #{MOUSE_CLICK_OFFSET},
+          clientX: #{start['x']},
+          clientY: #{start['y']},
           button: 0,
           bubbles: true
         }));
@@ -247,12 +248,10 @@ module EditorV2Helpers
     # Mouse move to new position
     page.execute_script(<<~JS)
       (function() {
-        const canvas = document.getElementById('nodes-canvas');
-        const canvasRect = canvas.getBoundingClientRect();
         
         document.dispatchEvent(new MouseEvent('mousemove', {
-          clientX: canvasRect.left + #{new_x} + #{MOUSE_CLICK_OFFSET},
-          clientY: canvasRect.top + #{new_y} + #{MOUSE_CLICK_OFFSET},
+          clientX: #{finish['x']},
+          clientY: #{finish['y']},
           bubbles: true
         }));
       })();
@@ -261,12 +260,10 @@ module EditorV2Helpers
     # Mouse up at new position
     page.execute_script(<<~JS)
       (function() {
-        const canvas = document.getElementById('nodes-canvas');
-        const canvasRect = canvas.getBoundingClientRect();
         
         document.dispatchEvent(new MouseEvent('mouseup', {
-          clientX: canvasRect.left + #{new_x} + #{MOUSE_CLICK_OFFSET},
-          clientY: canvasRect.top + #{new_y} + #{MOUSE_CLICK_OFFSET},
+          clientX: #{finish['x']},
+          clientY: #{finish['y']},
           bubbles: true
         }));
       })();
@@ -292,17 +289,17 @@ module EditorV2Helpers
     
     current_x = current['x']
     current_y = current['y']
+    start = graph_to_client_coordinates( current_x + MOUSE_CLICK_OFFSET, current_y + MOUSE_CLICK_OFFSET )
+    finish = graph_to_client_coordinates( new_x + MOUSE_CLICK_OFFSET, new_y + MOUSE_CLICK_OFFSET )
     
     # Mouse down with Shift key at current position
     page.execute_script(<<~JS)
       (function() {
         const el = document.querySelector('[data-client-id="#{client_id}"]');
-        const canvas = document.getElementById('nodes-canvas');
-        const canvasRect = canvas.getBoundingClientRect();
         
         el.dispatchEvent(new MouseEvent('mousedown', {
-          clientX: canvasRect.left + #{current_x} + #{MOUSE_CLICK_OFFSET},
-          clientY: canvasRect.top + #{current_y} + #{MOUSE_CLICK_OFFSET},
+          clientX: #{start['x']},
+          clientY: #{start['y']},
           button: 0,
           shiftKey: true,
           bubbles: true
@@ -313,12 +310,10 @@ module EditorV2Helpers
     # Mouse move to new position
     page.execute_script(<<~JS)
       (function() {
-        const canvas = document.getElementById('nodes-canvas');
-        const canvasRect = canvas.getBoundingClientRect();
         
         document.dispatchEvent(new MouseEvent('mousemove', {
-          clientX: canvasRect.left + #{new_x} + #{MOUSE_CLICK_OFFSET},
-          clientY: canvasRect.top + #{new_y} + #{MOUSE_CLICK_OFFSET},
+          clientX: #{finish['x']},
+          clientY: #{finish['y']},
           bubbles: true
         }));
       })();
@@ -327,12 +322,10 @@ module EditorV2Helpers
     # Mouse up at new position
     page.execute_script(<<~JS)
       (function() {
-        const canvas = document.getElementById('nodes-canvas');
-        const canvasRect = canvas.getBoundingClientRect();
         
         document.dispatchEvent(new MouseEvent('mouseup', {
-          clientX: canvasRect.left + #{new_x} + #{MOUSE_CLICK_OFFSET},
-          clientY: canvasRect.top + #{new_y} + #{MOUSE_CLICK_OFFSET},
+          clientX: #{finish['x']},
+          clientY: #{finish['y']},
           bubbles: true
         }));
       })();
@@ -353,7 +346,24 @@ module EditorV2Helpers
         return { x: node.position.x, y: node.position.y };
       })();
     JS
-    expect(actual['x']).to eq(expected_x)
-    expect(actual['y']).to eq(expected_y)
+    expect(actual['x']).to be_within(0.5).of(expected_x)
+    expect(actual['y']).to be_within(0.5).of(expected_y)
   end
+end
+
+def graph_to_client_coordinates(graph_x, graph_y)
+  page.evaluate_script(<<~JS)
+    (function() {
+      const viewport = window.editorAPI.canvasViewport;
+      const workspace = document.getElementById('canvas-workspace');
+      const workspaceRect = workspace.getBoundingClientRect();
+      const scenePoint = viewport.graphToScenePoint(#{graph_x}, #{graph_y});
+      const zoom = viewport.getZoom();
+
+      return {
+        x: workspaceRect.left + (scenePoint.x * zoom),
+        y: workspaceRect.top + (scenePoint.y * zoom)
+      };
+    })();
+  JS
 end
