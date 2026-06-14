@@ -81,6 +81,12 @@ const STEPS = [
     advanceOn: 'click'
   },
   {
+    target: '#zoom-out',
+    title: 'Zoom out to see it',
+    body: `<p>Click <strong>-</strong> to zoom out and see the whole template.</p>`,
+    advanceOn: 'click'
+  },
+  {
     target: () => document.querySelector('.node.organizer'),
     title: 'What an Organizer node does',
     body: `<p>The blue square at the top is an <strong>Organizer</strong>. It labels this chunk of graph but doesn't affect scoring.</p>`,
@@ -390,19 +396,18 @@ const STEPS = [
     advanceOn: 'next'
   },
   {
-    target: null,
-    placement: 'center',
-    title: 'Tool Tips',
+    target: '#canvas-workspace',
+    title: 'Inspect a node up close',
     body: `
-      <ul>
-        <li><kbd>I</kbd> toggles big-text on hover.</li>
-        <li>Drag a node to move <strong>all children</strong> with it; hold <kbd>Alt</kbd> to move just that node.</li>
-        <li><kbd>Cmd/Ctrl+C</kbd> / <kbd>V</kbd> — copy and paste selected nodes.</li>
-        <li><kbd>Cmd/Ctrl+Z</kbd> — undo. <kbd>Cmd/Ctrl+Shift+Z</kbd> — redo.</li>
-        <li>Click and drag empty canvas to select multiple nodes.</li>
-        <li>Or shift+click to select multiple nodes.</li>
-        <li><kbd>Space</kbd> + click and drag to pan the canvas</li>
-      </ul>
+      <p>Press <kbd>I</kbd>, then hover any node for a blown-up preview. <kbd>I</kbd> or <kbd>Esc</kbd> turns it off.</p>
+    `,
+    advanceOn: 'next'
+  },
+  {
+    target: '.btn-tips-toggle',
+    title: 'Tips & shortcuts live here',
+    body: `
+      <p>Every gesture and shortcut lives behind this <kbd>?</kbd> — plus the <strong>Bot Guide</strong>.</p>
     `,
     advanceOn: 'next'
   },
