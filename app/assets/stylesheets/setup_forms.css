@@ -164,10 +164,6 @@
   margin-bottom: 1rem;
 }
 
-.match-setup-col > .btn {
-  align-self: flex-start;
-}
-
 .match-setup-footer {
   display: flex;
   justify-content: flex-end;
