@@ -10,9 +10,12 @@ const NEUTRAL_COMPARISON = {
 }
 
 const DEFAULT_RELATIONAL_STATE = {
-  left: { subject: 'allied', filter: 'any', filterMode: 'include', ...NEUTRAL_COMPARISON },
+  left: { subject: 'moved_piece', filter: 'any', filterMode: 'include', ...NEUTRAL_COMPARISON },
   operator: 'targets',
-  right: { subject: 'enemy', filter: 'any', filterMode: 'include', ...NEUTRAL_COMPARISON }
+  right: {
+    subject: 'enemy', filter: 'any', filterMode: 'include',
+    ...NEUTRAL_COMPARISON, comparator: 'greater_than', comparisonSource: 'prior_board_state'
+  }
 }
 
 // Relational condition mode. State-only: the orchestrator owns DOM events and

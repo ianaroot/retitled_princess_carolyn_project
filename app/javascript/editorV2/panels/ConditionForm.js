@@ -53,7 +53,7 @@ class ConditionForm {
 
   defaultState() {
     return {
-      mode: 'census',
+      mode: 'relational',
       relational: this.modes.relational.defaultState(),
       census: this.modes.census.defaultState(),
       captures: this.modes.captures.defaultState()

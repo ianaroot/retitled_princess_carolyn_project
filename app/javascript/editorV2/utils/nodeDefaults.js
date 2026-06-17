@@ -1,13 +1,14 @@
 export const DEFAULT_CONDITION_DATA = Object.freeze({
   version: 2,
   kind: 'relational',
-  subject: 'allied',
+  subject: 'moved_piece',
   subjectFilter: 'any',
-  subjectFilterMode: 'include',
   operator: 'attack',
   target: 'enemy',
   targetFilter: 'any',
-  targetFilterMode: 'include',
+  targetComparisonMetric: 'count',
+  targetComparator: 'greater_than',
+  targetComparisonSource: 'prior_board_state',
 })
 
 export const DEFAULT_ACTION_DATA = Object.freeze({

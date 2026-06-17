@@ -215,6 +215,28 @@ describe('ConditionForm', () => {
     document.body.innerHTML = ''
   })
 
+  it('defaults a new condition to moved piece attacking more enemies than the prior board state', () => {
+    const panel = buildPanel()
+    const form = new ConditionForm(panel)
+    form.attach()
+
+    form.populate({})
+
+    expect(form.state.mode).toBe('relational')
+    expect(form.buildPayload()).toEqual({
+      version: 2,
+      kind: 'relational',
+      subject: 'moved_piece',
+      subjectFilter: 'any',
+      operator: 'attack',
+      target: 'enemy',
+      targetFilter: 'any',
+      targetComparisonMetric: 'count',
+      targetComparator: 'greater_than',
+      targetComparisonSource: 'prior_board_state'
+    })
+  })
+
   it('toggles only the matching numeric selector for each comparison block', () => {
     const panel = buildPanel()
     const form = new ConditionForm(panel)
