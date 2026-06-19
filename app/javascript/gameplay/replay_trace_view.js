@@ -3,10 +3,10 @@ import { renderConditionSentence } from "editorV2/utils/conditionPreviewFormatte
 
 const FLIPPED_FILE_CHAR_SUM = "a".charCodeAt(0) + "h".charCodeAt(0)
 
-// Rotate an algebraic square 180° so coordinates read from the flipped viewer's
-// side of the board (e.g. b8 → g1 when seen from black's point of view).
-function orientSquare(square, flipped) {
-  if (!flipped || typeof square !== "string" || square.length < 2) { return square }
+// Rotate an algebraic square 180° so it reads from the moving team's side of the
+// board (black's back rank becomes rank 1), independent of how the board is oriented.
+function orientSquare(square, mirrored) {
+  if (!mirrored || typeof square !== "string" || square.length < 2) { return square }
   const file = String.fromCharCode(FLIPPED_FILE_CHAR_SUM - square.charCodeAt(0))
   const rank = 9 - Number(square.slice(1))
   return `${file}${rank}`
@@ -19,7 +19,7 @@ class ReplayTraceView {
     this.traceBranchesElement = traceBranchesElement
   }
 
-  render(inspection, flipped = false) {
+  render(inspection, movingTeam = null) {
     if (!this.tracePanelElement || !this.traceSummaryElement || !this.traceBranchesElement) { return }
     if (inspection?.unavailableMessage) {
       this.tracePanelElement.hidden = false
@@ -40,14 +40,15 @@ class ReplayTraceView {
       return
     }
     this.tracePanelElement.hidden = false
-    this.renderSummary(inspection, flipped)
+    this.renderSummary(inspection, movingTeam)
     this.renderTree(inspection)
   }
 
-  renderSummary(inspection, flipped = false) {
+  renderSummary(inspection, movingTeam = null) {
     const { result } = inspection
+    const mirrored = movingTeam === Board.BLACK
     const inspectedMove = result.inspectedMove?.moveObject
-    const inspectedNotation = inspectedMove ? orientSquare(Board.gridCalculator(inspectedMove.endPosition), flipped) : "none"
+    const inspectedNotation = inspectedMove ? orientSquare(Board.gridCalculator(inspectedMove.endPosition), mirrored) : "none"
     const tiedTopCount = result.tiedTopMoveKeys.length
     const inspectedTied = result.inspectedMoveKey && result.tiedTopMoveKeys.includes(result.inspectedMoveKey)
     this.traceSummaryElement.innerHTML = ""
@@ -64,8 +65,8 @@ class ReplayTraceView {
     const moveSummary = document.createElement("span")
     moveSummary.className = "match-replay-trace-meta"
     moveSummary.innerText = result.explicitInspectedMoveKey
-      ? `inspected move: ${orientSquare(Board.gridCalculator(inspectedMove.startPosition), flipped)} to ${inspectedNotation}`
-      : `current choice: ${orientSquare(Board.gridCalculator(inspectedMove.startPosition), flipped)} to ${inspectedNotation}`
+      ? `inspected move: ${orientSquare(Board.gridCalculator(inspectedMove.startPosition), mirrored)} to ${inspectedNotation}`
+      : `current choice: ${orientSquare(Board.gridCalculator(inspectedMove.startPosition), mirrored)} to ${inspectedNotation}`
     summaryRow.appendChild(moveSummary)
     if (tiedTopCount > 1 && inspectedTied) {
       const tieSummary = document.createElement("span")

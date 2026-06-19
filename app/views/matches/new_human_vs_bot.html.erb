@@ -1,26 +1,9 @@
-<div class="match-setup-page" data-controller="match-setup"
-  data-match-setup-stale-message-template-value="<%= stale_bot_message_template %>">
-  <h1>Play Against Your Bot</h1>
-  <%= render 'matches/mode_toggle', current_mode: :human_vs_bot %>
-  <% if user_has_no_own_bots? %>
-    <p class="notice">You don't have any bots yet. <%= link_to 'Build one', new_bot_path %> to get started.</p>
-  <% end %>
-
-  <%= form_with url: human_vs_bot_matches_path,
-      scope: :match,
-      method: :post,
-      local: true,
-      id: "match-form",
-      data: {
-        match_setup_target: 'form',
-        action: 'submit->match-setup#confirmStaleCompile'
-      } do |form| %>
-    <%= form.hidden_field :stale_bot_confirmation,
-        value: '',
-        data: { match_setup_target: 'staleBotConfirmation' } %>
-  <% end %>
-
-  <div class="match-setup-grid">
+<%= render layout: 'matches/setup_page', locals: {
+      title: 'Play Against Your Bot',
+      mode: :human_vs_bot,
+      form_url: human_vs_bot_matches_path,
+      submit_label: 'Start Game'
+    } do %>
     <div class="match-setup-col">
       <div class="setup-section" data-controller="sort">
         <h2>Opponent Bot</h2>
@@ -43,7 +26,6 @@
             show_owner: false %>
         <% end %>
       </div>
-      <button type="submit" form="match-form" class="btn btn-primary">Start Game</button>
     </div>
 
     <div class="match-setup-col">
@@ -63,5 +45,4 @@
         </label>
       </div>
     </div>
-  </div>
-</div>
+<% end %>

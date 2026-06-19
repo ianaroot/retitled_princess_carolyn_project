@@ -183,8 +183,13 @@
 
 .btn-guide {
   background: var(--surface);
-  color: var(--accent-gold-pale);
-  border: 1px solid var(--accent-gold-deep);
+  color: var(--accent-raspberry);
+  border: 1px solid var(--accent-raspberry);
+}
+
+.btn-guide::after {
+  content: "ⓘ";
+  margin-left: 0.5em;
 }
 
 .btn-guide:hover {

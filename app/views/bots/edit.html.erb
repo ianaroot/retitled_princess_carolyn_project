@@ -18,10 +18,6 @@
     <div class="toolbar-section">
       <div class="toolbar-section__heading">
         <h3>Add Node</h3>
-        <button
-          type="button"
-          class="btn-guide"
-          data-action="click->tour#start">Take the tour</button>
         <button type="button" class="btn-open-templates">Templates</button>
       </div>
       <button type="button" class="btn-add-node" data-type="condition">+ Condition</button>
@@ -43,6 +39,9 @@
           <%= render 'bots/tips_popover' %>
         </div>
       </div>
+      <button type="button" class="btn-guide" data-action="click->tour#start">
+        Take the tour
+      </button>
       <button type="button" class="btn btn-ghost btn-delete-node" disabled title="Delete selected node (Delete/Backspace)">Delete</button>
     </div>
 

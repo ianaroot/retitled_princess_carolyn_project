@@ -30,13 +30,30 @@ or emitted by a gem. A selector applied with its full literal name
 (`classList.add("flipped")`, or `"x #{'x--active' if …}"`) can be found by
 searching and does **not** belong here.
 
+## Browser-support floor: ~2021
+
+Target browsers from ~2021 on — Safari 14.1, Chrome/Edge 88+, Firefox 78+.
+Flexbox `gap` (Safari 14.1, April 2021) is the modern feature setting the
+practical edge; `:where()`/`:is()` (early 2021) are within the floor. Above it,
+and off-limits without sign-off because an unsupported rule is silently dropped:
+`@layer` (2022), `color-mix()` and relative color (2023).
+
+## application.css is the base layer
+
+The manifest lists `require_self` before `require_tree .`, so `application.css`
+compiles first and component sheets load after it — they win equal-specificity
+ties by source order. Put base/global styles in `application.css`, component
+styles in their own sheet; don't rely on `application.css` to override a
+component, and don't restore the Rails-default order (it silently inverts every
+equal-specificity tie).
+
 ## Transparency uses channel tokens, not modern color functions
 
 For a translucent variant of a token color, compose it from the matching
 `--X-rgb` channel token: `rgba(var(--X-rgb), a)` (e.g.
 `rgba(var(--error-rgb), 0.1)`). Don't reach for `color-mix()` or relative
-color (`rgb(from …)`) — they are unsupported on the older browsers this app
-still targets, where transparency must keep working.
+color (`rgb(from …)`) — they are unsupported below the ~2021 floor (above),
+where transparency must keep working.
 
 ## Finding dead compound/descendant rules
 

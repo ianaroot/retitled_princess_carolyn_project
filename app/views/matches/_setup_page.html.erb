@@ -1,0 +1,30 @@
+<div class="match-setup-page" data-controller="match-setup"
+  data-match-setup-stale-message-template-value="<%= stale_bot_message_template %>">
+  <h1><%= title %></h1>
+  <%= render 'matches/mode_toggle', current_mode: mode %>
+  <% if user_has_no_own_bots? %>
+    <p class="notice">You don't have any bots yet. <%= link_to 'Build one', new_bot_path %> to get started.</p>
+  <% end %>
+
+  <%= form_with url: form_url,
+      scope: :match,
+      method: :post,
+      local: true,
+      id: "match-form",
+      data: {
+        match_setup_target: 'form',
+        action: 'submit->match-setup#confirmStaleCompile'
+      } do |form| %>
+    <%= form.hidden_field :stale_bot_confirmation,
+        value: '',
+        data: { match_setup_target: 'staleBotConfirmation' } %>
+  <% end %>
+
+  <div class="match-setup-grid">
+    <%= yield %>
+  </div>
+
+  <div class="match-setup-footer">
+    <button type="submit" form="match-form" class="btn btn-primary"><%= submit_label %></button>
+  </div>
+</div>

@@ -160,12 +160,14 @@
 .match-setup-nav {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 2rem;
   margin-bottom: 1rem;
 }
 
-.match-setup-col > .btn {
-  align-self: flex-start;
+.match-setup-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
 }
 
 /* ============================================

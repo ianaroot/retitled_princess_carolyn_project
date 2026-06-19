@@ -286,12 +286,3 @@
   outline: 2px solid var(--accent-primary);
   outline-offset: -5px;
 }
-
-/* ============================================
-   BODY DARK THEME
-   ============================================ */
-
-body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-}

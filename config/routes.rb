@@ -7,6 +7,8 @@ Rails.application.routes.draw do
   
   root to: "bots#index"
 
+  get '/signed_out', to: 'signed_out#show', as: :signed_out
+
   resources :bots, except: :show do
     member do
       post :compile

@@ -21,6 +21,7 @@ class MatchReplayController {
     this.forwardButton = rootElement.querySelector('[data-match-replay-target="forward-button"]')
     this.startButton = rootElement.querySelector('[data-match-replay-target="start-button"]')
     this.topMovesToggle = rootElement.querySelector('[data-match-replay-target="top-moves-toggle"]')
+    this.flipButton = rootElement.querySelector('[data-match-replay-target="flip-button"]')
     this.notationElement = rootElement.querySelector('[data-match-replay-target="notation"]')
     this.resultElement = rootElement.querySelector('[data-match-replay-target="result"]')
     this.boardElement = rootElement.querySelector('#chess-board')
@@ -33,6 +34,7 @@ class MatchReplayController {
     this.forwardButton?.addEventListener('click', () => { this.clearControlHints(); this.stepForwardOnce() })
     this.startButton?.addEventListener('click', this.jumpToStart.bind(this))
     this.topMovesToggle?.addEventListener('click', this.toggleTopMoveHighlights.bind(this))
+    this.flipButton?.addEventListener('click', this.toggleOrientation.bind(this))
     this.notationElement?.addEventListener('click', this.jumpToNotationMove.bind(this))
     this.resultElement?.addEventListener('click', this.handleResultClick.bind(this))
     this.boardElement?.addEventListener('click', this.handleBoardClick.bind(this))
@@ -57,6 +59,7 @@ class MatchReplayController {
     this.whiteBotOwnerId = rootElement.dataset.whiteBotOwnerId ? Number(rootElement.dataset.whiteBotOwnerId) : null
     this.blackBotOwnerId = rootElement.dataset.blackBotOwnerId ? Number(rootElement.dataset.blackBotOwnerId) : null
     this.userBotTeam = this.deriveUserBotTeam()
+    this.flipped = this.userBotTeam === Board.BLACK
     this.whiteCompiledProgramSnapshot = this.parseCompiledProgramSnapshot(rootElement.dataset.whiteCompiledProgramSnapshot)
     this.blackCompiledProgramSnapshot = this.parseCompiledProgramSnapshot(rootElement.dataset.blackCompiledProgramSnapshot)
 
@@ -109,15 +112,17 @@ class MatchReplayController {
   }
 
   applyOrientation() {
-    const viewerOwnsBlackBot =
-      Number.isInteger(this.currentUserId) &&
-      this.blackBotOwnerId !== null &&
-      this.currentUserId === this.blackBotOwnerId
     applyBoardOrientation(this.rootElement.querySelector('#arena'), {
-      flipped: viewerOwnsBlackBot,
+      flipped: this.flipped,
       whiteName: this.rootElement.dataset.whiteName,
       blackName: this.rootElement.dataset.blackName
     })
+  }
+
+  toggleOrientation() {
+    this.flipped = !this.flipped
+    this.applyOrientation()
+    this.renderCurrentFrame()
   }
 
   parseCompiledProgramSnapshot(snapshotJson) {

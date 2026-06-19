@@ -7,6 +7,7 @@ const LOCKED_SELECTORS = [
   '[data-match-replay-target="play-button"]',
   '[data-match-replay-target="reverse-button"]',
   '[data-match-replay-target="top-moves-toggle"]',
+  '[data-match-replay-target="flip-button"]',
   FORWARD_BUTTON,
   '.btn-rematch'
 ]
@@ -59,7 +60,7 @@ const STEPS = [
     beforeEnter: () => setLocked([FORWARD_BUTTON], false),
     advanceOn: {
       event: 'replay:frame-changed',
-      when: (d) => d.moveIndex >= 4 && d.allowedToMove === d.userBotTeam
+      when: (frame) => frame.moveIndex >= 2 && frame.allowedToMove === frame.userBotTeam
     }
   },
   {

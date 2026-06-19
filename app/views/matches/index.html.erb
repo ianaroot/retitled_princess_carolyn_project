@@ -1,4 +1,4 @@
-<div class="index-header">
+<div class="index-header index-header--inline">
   <h1>Your Matches</h1>
   <%= link_to 'Set up a match', new_bot_vs_bot_match_path, class: 'btn btn-outline' %>
 </div>
@@ -35,6 +35,7 @@
   <table>
     <thead>
       <tr>
+        <th class="index-table-actions"></th>
         <th>White</th>
         <th>Black</th>
         <th>Tournament</th>
@@ -46,8 +47,9 @@
       <% @matches.each do |match| %>
         <% row = Matches::IndexRow.new(match: match, user: current_user) %>
         <tr>
+          <td class="index-table-actions"><%= link_to 'View replay', match_path(match), class: 'btn btn-outline index-table-action-btn' %></td>
           <td>
-            <%= link_to match.player_display_name_for(:white), match_path(match) %>
+            <%= match.player_display_name_for(:white) %>
             <% if row.playing_white? %><span class="index-table-secondary">(you)</span><% end %>
           </td>
           <td>

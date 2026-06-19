@@ -81,6 +81,12 @@ const STEPS = [
     advanceOn: 'click'
   },
   {
+    target: '#zoom-out',
+    title: 'Zoom out to see it',
+    body: `<p>Click <strong>-</strong> to zoom out and see the whole template.</p>`,
+    advanceOn: 'click'
+  },
+  {
     target: () => document.querySelector('.node.organizer'),
     title: 'What an Organizer node does',
     body: `<p>The blue square at the top is an <strong>Organizer</strong>. It labels this chunk of graph but doesn't affect scoring.</p>`,
@@ -119,7 +125,7 @@ const STEPS = [
     target: '.btn-add-node[data-type="condition"]',
     title: 'Add your own condition',
     body: `<p>Now build one from scratch. Click <strong>+ Condition</strong>.</p>`,
-    advanceOn: { event: 'editor:node-added', when: (d) => d.type === 'condition' }
+    advanceOn: { event: 'editor:node-added', when: (nodeInfo) => nodeInfo.type === 'condition' }
   },
   {
     target: (ctx) => {
@@ -130,7 +136,7 @@ const STEPS = [
     body: `<p><strong>Click your new condition</strong> to open the editor on the right.</p>`,
     beforeEnter: lockNodeDrag,
     onExit: unlockNodeDrag,
-    advanceOn: { event: 'editor:node-editing-started', when: (d) => d.type === 'condition' }
+    advanceOn: { event: 'editor:node-editing-started', when: (nodeInfo) => nodeInfo.type === 'condition' }
   },
   {
     target: '.condition-form-mode-picker',
@@ -303,7 +309,7 @@ const STEPS = [
     target: '#save-node',
     title: 'Save it',
     body: `<p>When the Current Condition reads the way you want, click <strong>Save</strong>.</p>`,
-    advanceOn: { event: 'editor:node-saved', when: (d) => d.type === 'condition' }
+    advanceOn: { event: 'editor:node-saved', when: (nodeInfo) => nodeInfo.type === 'condition' }
   },
   {
     target: '#canvas-workspace',
@@ -318,7 +324,7 @@ const STEPS = [
     target: '.btn-add-node[data-type="score"]',
     title: 'Add a score node',
     body: `<p>A condition by itself doesn't change anything. To reward (or punish) moves, add a <strong>+ Score</strong> node.</p>`,
-    advanceOn: { event: 'editor:node-added', when: (d) => d.type === 'score' }
+    advanceOn: { event: 'editor:node-added', when: (nodeInfo) => nodeInfo.type === 'score' }
   },
   {
     target: (ctx) => {
@@ -329,7 +335,7 @@ const STEPS = [
     body: `<p><strong>Click your new score node</strong> to open the editor.</p>`,
     beforeEnter: lockNodeDrag,
     onExit: unlockNodeDrag,
-    advanceOn: { event: 'editor:node-editing-started', when: (d) => d.type === 'score' }
+    advanceOn: { event: 'editor:node-editing-started', when: (nodeInfo) => nodeInfo.type === 'score' }
   },
   {
     target: '#node-form-panel',
@@ -347,7 +353,7 @@ const STEPS = [
       <br>
       <p>Save when you're done.</p>
     `,
-    advanceOn: { event: 'editor:node-saved', when: (d) => d.type === 'score' }
+    advanceOn: { event: 'editor:node-saved', when: (nodeInfo) => nodeInfo.type === 'score' }
   },
   {
     target: '#canvas-workspace',
@@ -366,7 +372,7 @@ const STEPS = [
       <p><strong>Shift-click</strong> two or more connected conditions.</p>
       <p>Press <kbd>P</kbd></p>
     `,
-    advanceOn: { event: 'editor:preview-shown', when: (d) => d.mode === 'selection' && d.hasChain }
+    advanceOn: { event: 'editor:preview-shown', when: (preview) => preview.mode === 'selection' && preview.hasChain }
   },
   {
     target: '.board-state-preview__chain',
@@ -390,19 +396,18 @@ const STEPS = [
     advanceOn: 'next'
   },
   {
-    target: null,
-    placement: 'center',
-    title: 'Tool Tips',
+    target: '#canvas-workspace',
+    title: 'Inspect a node up close',
     body: `
-      <ul>
-        <li><kbd>I</kbd> toggles big-text on hover.</li>
-        <li>Drag a node to move <strong>all children</strong> with it; hold <kbd>Alt</kbd> to move just that node.</li>
-        <li><kbd>Cmd/Ctrl+C</kbd> / <kbd>V</kbd> — copy and paste selected nodes.</li>
-        <li><kbd>Cmd/Ctrl+Z</kbd> — undo. <kbd>Cmd/Ctrl+Shift+Z</kbd> — redo.</li>
-        <li>Click and drag empty canvas to select multiple nodes.</li>
-        <li>Or shift+click to select multiple nodes.</li>
-        <li><kbd>Space</kbd> + click and drag to pan the canvas</li>
-      </ul>
+      <p>Press <kbd>I</kbd>, then hover any node for a blown-up preview. <kbd>I</kbd> or <kbd>Esc</kbd> turns it off.</p>
+    `,
+    advanceOn: 'next'
+  },
+  {
+    target: '.btn-tips-toggle',
+    title: 'Tips & shortcuts live here',
+    body: `
+      <p>Every gesture and shortcut lives behind this <kbd>?</kbd> — plus the <strong>Bot Guide</strong>.</p>
     `,
     advanceOn: 'next'
   },

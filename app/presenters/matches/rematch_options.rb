@@ -18,7 +18,7 @@ class Matches::RematchOptions
 
   def human_vs_bot_params
     return nil if !human_vs_bot_context?
-    return nil if bot&.user_id != user.id
+    return nil unless own_or_system_bot?
     return nil if !bot_ready?
     {
       bot_id: bot.id,
@@ -31,7 +31,7 @@ class Matches::RematchOptions
     return nil if human_vs_bot_params.present?
     if bot.blank?
       'Play again is unavailable because the green chess goblin from this match has been deleted.'
-    elsif bot.user_id != user.id
+    elsif !own_or_system_bot?
       'Play again is unavailable because this bot belongs to another user.'
     elsif bot.compiled_program_stale?
       'Play again is unavailable because this bot needs to be recompiled.'
@@ -75,6 +75,10 @@ class Matches::RematchOptions
 
   def bot_ready?
     bot.compiled_program.present? && !bot.compiled_program_stale?
+  end
+
+  def own_or_system_bot?
+    bot && (bot.user_id == user.id || bot.system?)
   end
 
   def bot_snapshot

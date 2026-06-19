@@ -12,6 +12,10 @@ class Users::SessionsController < Devise::SessionsController
 
   private
 
+  def after_sign_out_path_for(_resource_or_scope)
+    signed_out_path
+  end
+
   def user_without_authenticating
     warden.user(scope: :user)
   end

@@ -2,6 +2,6 @@
   <p class="match-show-meta-item"><strong>Status:</strong> <%= match.status %></p>
   <%= render 'matches/rematch_controls', rematch_options: rematch_options %>
   <% if local_assigns[:show_tour_button] %>
-    <button type="button" class="btn-guide btn-guide--small" data-action="click->tour#start">See how your bot thinks</button>
+    <button type="button" class="btn-guide btn-guide--small" data-action="click->tour#start">Compare move scores</button>
   <% end %>
 </div>

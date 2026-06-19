@@ -250,6 +250,48 @@ describe('MatchReplayController', () => {
     expect(root.querySelector('[data-board-name="bottom"]').dataset.team).toBe('B')
   })
 
+  it('defaults to white POV when the viewer owns both bots', () => {
+    const root = buildRoot({ finalLayout: Layout.default(), movementNotation: [] })
+    root.dataset.whiteBotOwnerId = '1'
+    root.dataset.blackBotOwnerId = '1'
+    document.body.appendChild(root)
+
+    const controller = new MatchReplayController({ rootElement: root })
+    root.insertAdjacentHTML('beforeend', `
+      <div id="arena">
+        <div class="board-player-name" data-board-name="top"></div>
+        <table id="chess-board"></table>
+        <div class="board-player-name" data-board-name="bottom"></div>
+      </div>
+    `)
+    controller.applyOrientation()
+
+    expect(root.querySelector('#chess-board').classList.contains('flipped')).toBe(false)
+  })
+
+  it('flips the board orientation when the flip button is clicked', () => {
+    const root = buildRoot({ finalLayout: Layout.default(), movementNotation: [] })
+    root.insertAdjacentHTML('beforeend', '<button data-match-replay-target="flip-button"></button>')
+    document.body.appendChild(root)
+
+    const controller = new MatchReplayController({ rootElement: root })
+    root.insertAdjacentHTML('beforeend', `
+      <div id="arena">
+        <div class="board-player-name" data-board-name="top"></div>
+        <table id="chess-board"></table>
+        <div class="board-player-name" data-board-name="bottom"></div>
+      </div>
+    `)
+    vi.spyOn(controller, 'renderCurrentFrame').mockImplementation(() => {})
+
+    expect(controller.flipped).toBe(false)
+    controller.flipButton.click()
+
+    expect(controller.flipped).toBe(true)
+    expect(root.querySelector('#chess-board').classList.contains('flipped')).toBe(true)
+    expect(controller.renderCurrentFrame).toHaveBeenCalled()
+  })
+
   describe('userBotTeam', () => {
     function setup({ whiteOwner, blackOwner, currentUser = '1' } = {}) {
       const root = buildRoot({ finalLayout: Layout.default(), movementNotation: [] })

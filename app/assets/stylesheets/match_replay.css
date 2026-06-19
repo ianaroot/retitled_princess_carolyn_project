@@ -209,6 +209,16 @@ input[type="submit"].btn-rematch {
   gap: 0.5rem;
 }
 
+.match-replay-page .match-replay-flip {
+  margin-left: 2rem;
+}
+
+.match-replay-page .match-replay-flip button {
+  font-size: 0.8rem;
+  padding: 0.15rem 0.4rem;
+  background-color: var(--surface-raised);
+}
+
 .match-replay-page button.match-replay-speed-button--active,
 .match-replay-page button.match-replay-toggle-button--active {
   background-color: rgba(var(--accent-primary-rgb), 0.15);

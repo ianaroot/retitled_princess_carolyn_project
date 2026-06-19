@@ -1,0 +1,8 @@
+<div class="signed-out-page">
+  <h1>You've been signed out</h1>
+  <p>Thanks for playing. Your session has ended.</p>
+  <p>
+    <%= link_to 'Sign back in', new_user_session_path, class: 'btn btn-primary' %>
+    <%= link_to 'Create an account', new_user_registration_path, class: 'btn btn-secondary' %>
+  </p>
+</div>

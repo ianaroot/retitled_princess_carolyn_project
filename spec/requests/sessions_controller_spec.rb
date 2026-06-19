@@ -23,4 +23,14 @@ RSpec.describe Users::SessionsController, type: :request do
       expect(response).to have_http_status(:success)
     end
   end
+
+  describe 'DELETE #destroy' do
+    it 'redirects to the signed-out page instead of the bots index' do
+      sign_in create(:user)
+
+      delete destroy_user_session_path
+
+      expect(response).to redirect_to(signed_out_path)
+    end
+  end
 end

@@ -66,6 +66,10 @@ class Bot < ApplicationRecord
     find_by(name: SYSTEM_BOT_NAME)
   end
 
+  def system?
+    name == SYSTEM_BOT_NAME
+  end
+
   def self.mark_stale_for(bot_id)
     find_by(id: bot_id)&.mark_compiled_program_stale!
   end

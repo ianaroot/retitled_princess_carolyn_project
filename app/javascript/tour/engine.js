@@ -139,8 +139,19 @@ export default class TourEngine {
     const bodyHtml = typeof step.body === 'function' ? step.body(this.context()) : step.body
     this.dom.body.innerHTML = bodyHtml ?? ''
     this.dom.progress.textContent = `${this.currentIndex + 1} of ${this.steps.length}`
+    this.positionToTarget(step, target)
+    this.repositionAfterTargetSettles(step, target)
+  }
+
+  positionToTarget(step, target) {
     this.positionFramesAndHalo(target)
     this.positionTooltip(target, step.placement)
+  }
+
+  repositionAfterTargetSettles(step, target) {
+    if (!target) { return }
+    const rafId = requestAnimationFrame(() => this.positionToTarget(step, target))
+    this.stepCleanup.push(() => cancelAnimationFrame(rafId))
   }
 
   positionFramesAndHalo(target) {

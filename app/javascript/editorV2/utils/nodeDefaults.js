@@ -1,13 +1,14 @@
 export const DEFAULT_CONDITION_DATA = Object.freeze({
   version: 2,
   kind: 'relational',
-  subject: 'allied',
+  subject: 'moved_piece',
   subjectFilter: 'any',
-  subjectFilterMode: 'include',
   operator: 'attack',
   target: 'enemy',
   targetFilter: 'any',
-  targetFilterMode: 'include',
+  targetComparisonMetric: 'count',
+  targetComparator: 'greater_than',
+  targetComparisonSource: 'prior_board_state',
 })
 
 export const DEFAULT_ACTION_DATA = Object.freeze({
@@ -19,20 +20,6 @@ export const DEFAULT_ORGANIZER_DATA = Object.freeze({
   title: 'Organizer',
   notes: ''
 })
-
-export const CONDITION_DATA_KEYS = Object.freeze([
-  'version',
-  'kind',
-  'subject',
-  'subjectFilter',
-  'subjectFilterMode',
-  'operator',
-  'comparator',
-  'target',
-  'targetFilter',
-  'targetFilterMode',
-  'targetTotal'
-])
 
 export const ACTION_DATA_KEYS = Object.freeze([
   'actionType',

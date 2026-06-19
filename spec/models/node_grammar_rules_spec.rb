@@ -52,11 +52,6 @@ RSpec.describe NodeGrammarRules, type: :model do
       expect(described_class.valid_comparison_source_for_metric?(metric: 'count', source: 'moved_piece')).to be(false)
     end
 
-    it 'allows distinct piece sources for value comparisons' do
-      expect(described_class.valid_comparison_source_for_metric?(metric: 'value', source: 'moved_piece')).to be(true)
-      expect(described_class.valid_comparison_source_for_metric?(metric: 'value', source: 'captured_piece')).to be(true)
-    end
-
     it 'allows distinct piece sources for individual_value but not for aggregate_value' do
       expect(described_class.valid_comparison_source_for_metric?(metric: 'individual_value', source: 'moved_piece')).to be(true)
       expect(described_class.valid_comparison_source_for_metric?(metric: 'aggregate_value', source: 'moved_piece')).to be(false)

@@ -138,7 +138,7 @@ RSpec.describe Users::RegistrationsController, type: :request do
       expect(guest.reload.username).to eq('fresh_handle')
     end
 
-    it 'leaves the guest unchanged when the requested email is already taken' do
+    it 'leaves the guest signed in and unchanged when the requested email is already taken' do
       existing_user = create(:user, email: 'taken@example.com')
       guest = create(:user, :guest)
       original_email = guest.email
@@ -157,6 +157,36 @@ RSpec.describe Users::RegistrationsController, type: :request do
       expect(response).to have_http_status(:unprocessable_entity)
       expect(guest.reload).to be_guest
       expect(guest.email).to eq(original_email)
+
+      get edit_user_registration_path
+      expect(response).to have_http_status(:success)
+    end
+
+    it 'leaves the guest signed in and unchanged when the requested username is already taken' do
+      create(:user, username: 'taken_handle')
+      guest = create(:user, :guest)
+      original_email = guest.email
+      original_username = guest.username
+      sign_in guest
+
+      expect {
+        post user_registration_path, params: {
+          user: {
+            email: 'fresh@example.com',
+            username: 'taken_handle',
+            password: 'password123',
+            password_confirmation: 'password123'
+          }
+        }
+      }.not_to change(User, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(guest.reload).to be_guest
+      expect(guest.username).to eq(original_username)
+      expect(guest.email).to eq(original_email)
+
+      get edit_user_registration_path
+      expect(response).to have_http_status(:success)
     end
   end
 

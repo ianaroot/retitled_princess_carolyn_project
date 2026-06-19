@@ -185,6 +185,13 @@ RSpec.describe Bot, type: :model do
     end
   end
 
+  describe '#system?' do
+    it 'is true only for the seed bot' do
+      expect(build(:bot, name: Bot::SYSTEM_BOT_NAME).system?).to be(true)
+      expect(build(:bot, name: 'Some Other Bot').system?).to be(false)
+    end
+  end
+
   describe '.sorted_by' do
     it 'sorts by rating high-to-low for elo_desc' do
       weak = create(:bot).tap { |b| b.update_column(:rating, 100) }
