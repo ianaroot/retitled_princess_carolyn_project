@@ -21,20 +21,6 @@ export const DEFAULT_ORGANIZER_DATA = Object.freeze({
   notes: ''
 })
 
-export const CONDITION_DATA_KEYS = Object.freeze([
-  'version',
-  'kind',
-  'subject',
-  'subjectFilter',
-  'subjectFilterMode',
-  'operator',
-  'comparator',
-  'target',
-  'targetFilter',
-  'targetFilterMode',
-  'targetTotal'
-])
-
 export const ACTION_DATA_KEYS = Object.freeze([
   'actionType',
   'value'
