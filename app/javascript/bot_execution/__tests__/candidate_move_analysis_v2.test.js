@@ -474,7 +474,7 @@ describe('CandidateMoveAnalysisV2', () => {
       const analysis = new CandidateMoveAnalysisV2({ board, moveObject })
 
       expect(
-        squaresFor(analysis.positionFilteredPositions({
+        squaresFor(analysis.actorPositionsInRegion({
           actor: 'allied',
           positionAxis: 'rank',
           positionComparator: 'greater_than_or_equal_to',
@@ -498,7 +498,7 @@ describe('CandidateMoveAnalysisV2', () => {
       const analysis = new CandidateMoveAnalysisV2({ board, moveObject })
 
       expect(
-        squaresFor(analysis.positionFilteredPositions({
+        squaresFor(analysis.actorPositionsInRegion({
           actor: 'allied',
           positionAxis: 'rank',
           positionComparator: 'greater_than_or_equal_to',
@@ -521,7 +521,7 @@ describe('CandidateMoveAnalysisV2', () => {
       const analysis = new CandidateMoveAnalysisV2({ board, moveObject })
 
       expect(
-        squaresFor(analysis.positionFilteredPositions({
+        squaresFor(analysis.actorPositionsInRegion({
           actor: 'enemy',
           positionAxis: 'rank',
           positionComparator: 'greater_than_or_equal_to',
@@ -545,7 +545,7 @@ describe('CandidateMoveAnalysisV2', () => {
       const analysis = new CandidateMoveAnalysisV2({ board, moveObject })
 
       expect(
-        squaresFor(analysis.positionFilteredPositions({
+        squaresFor(analysis.actorPositionsInRegion({
           actor: 'enemy',
           positionAxis: 'rank',
           positionComparator: 'greater_than_or_equal_to',
@@ -567,7 +567,7 @@ describe('CandidateMoveAnalysisV2', () => {
       const analysis = new CandidateMoveAnalysisV2({ board, moveObject })
 
       expect(
-        squaresFor(analysis.positionFilteredPositions({
+        squaresFor(analysis.actorPositionsInRegion({
           actor: 'allied',
           positionAxis: 'square',
           positionComparator: 'equal_to',
@@ -589,7 +589,7 @@ describe('CandidateMoveAnalysisV2', () => {
       const analysis = new CandidateMoveAnalysisV2({ board, moveObject })
 
       expect(
-        squaresFor(analysis.positionFilteredPositions({
+        squaresFor(analysis.actorPositionsInRegion({
           actor: 'enemy',
           positionAxis: 'square',
           positionComparator: 'equal_to',
@@ -612,7 +612,7 @@ describe('CandidateMoveAnalysisV2', () => {
       const analysis = new CandidateMoveAnalysisV2({ board, moveObject })
 
       expect(
-        squaresFor(analysis.positionFilteredPositions({
+        squaresFor(analysis.actorPositionsInRegion({
           actor: 'allied',
           positionAxis: 'file',
           positionComparator: 'equal_to',
@@ -621,7 +621,7 @@ describe('CandidateMoveAnalysisV2', () => {
       ).toEqual(['d4'])
 
       expect(
-        squaresFor(analysis.positionFilteredPositions({
+        squaresFor(analysis.actorPositionsInRegion({
           actor: 'enemy',
           positionAxis: 'file',
           positionComparator: 'equal_to',
@@ -642,7 +642,7 @@ describe('CandidateMoveAnalysisV2', () => {
       const analysis = new CandidateMoveAnalysisV2({ board, moveObject })
 
       expect(
-        squaresFor(analysis.positionFilteredPositions({
+        squaresFor(analysis.actorPositionsInRegion({
           actor: 'moved_piece',
           positionAxis: 'rank',
           positionComparator: 'equal_to',
@@ -663,7 +663,7 @@ describe('CandidateMoveAnalysisV2', () => {
       const analysis = new CandidateMoveAnalysisV2({ board, moveObject })
 
       expect(
-        analysis.positionFilteredPositions({
+        analysis.actorPositionsInRegion({
           actor: 'moved_piece',
           positionAxis: 'rank',
           positionComparator: 'equal_to',
@@ -687,7 +687,7 @@ describe('CandidateMoveAnalysisV2', () => {
       const analysis = new CandidateMoveAnalysisV2({ board, moveObject })
 
       expect(
-        squaresFor(analysis.positionFilteredPositions({
+        squaresFor(analysis.actorPositionsInRegion({
           actor: 'enemy_moved_piece',
           positionAxis: 'rank',
           positionComparator: 'equal_to',
@@ -715,7 +715,7 @@ describe('CandidateMoveAnalysisV2', () => {
       const analysis = new CandidateMoveAnalysisV2({ board, moveObject })
 
       expect(
-        analysis.positionFilteredPositions({
+        analysis.actorPositionsInRegion({
           actor: 'enemy_moved_piece',
           positionAxis: 'rank',
           positionComparator: 'greater_than_or_equal_to',
@@ -738,7 +738,7 @@ describe('CandidateMoveAnalysisV2', () => {
       const analysis = new CandidateMoveAnalysisV2({ board, moveObject })
 
       expect(
-        squaresFor(analysis.positionFilteredPositions({
+        squaresFor(analysis.actorPositionsInRegion({
           actor: 'enemy_captured_piece',
           positionAxis: 'rank',
           positionComparator: 'equal_to',
@@ -762,7 +762,7 @@ describe('CandidateMoveAnalysisV2', () => {
       const analysis = new CandidateMoveAnalysisV2({ board, moveObject })
 
       expect(
-        squaresFor(analysis.positionFilteredPositions({
+        squaresFor(analysis.actorPositionsInRegion({
           actor: 'enemy_captured_piece',
           positionAxis: 'rank',
           positionComparator: 'equal_to',
@@ -790,7 +790,7 @@ describe('CandidateMoveAnalysisV2', () => {
         positionComparator: 'equal_to',
         positionTarget: 4
       }
-      const positions = analysis.positionFilteredPositions(filterArgs)
+      const positions = analysis.actorPositionsInRegion(filterArgs)
 
       expect(squaresFor(positions)).toEqual(['a4', 'd4'])
       expect(analysis.positionMetricTotal({ positions, operator: 'count' })).toBe(2)

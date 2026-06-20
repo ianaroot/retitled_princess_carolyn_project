@@ -260,7 +260,7 @@ class ConditionEvaluatorV2 {
     }
 
     censusRegionPositions(conditionNode, analysis, boardScope = "after") {
-      return analysis.positionFilteredPositions({
+      return analysis.actorPositionsInRegion({
         actor: conditionNode.subject,
         filter: conditionNode.subjectFilter || "any",
         filterMode: conditionNode.subjectFilterMode || null,

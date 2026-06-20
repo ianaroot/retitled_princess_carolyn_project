@@ -11,7 +11,7 @@ import {
   metricForPositions,
   comparisonSourceTotal
 } from "bot_execution/relational_analysis"
-import { positionFilteredPositions, positionMetricTotal } from "bot_execution/position_analysis"
+import { actorPositionsInRegion, positionMetricTotal } from "bot_execution/position_analysis"
 import { combinatorialQualifyingExists } from "bot_execution/relational_qualifying"
 import { SINGULAR_ACTORS, RELATIONAL_SINGULAR_ACTORS } from "bot_execution/actors"
 import { compareTotals } from "bot_execution/utils"
@@ -379,8 +379,8 @@ class CandidateMoveAnalysisV2 {
     return comparisonSourceTotal(this, { comparisonSource, subject, subjectFilter, subjectFilterMode, operator })
   }
 
-  positionFilteredPositions({ actor, filter = "any", filterMode = null, positionAxis, positionComparator, positionTarget, boardScope = AFTER_BOARD }) {
-    return positionFilteredPositions(this, { actor, filter, filterMode, positionAxis, positionComparator, positionTarget, boardScope })
+  actorPositionsInRegion({ actor, filter = "any", filterMode = null, positionAxis, positionComparator, positionTarget, boardScope = AFTER_BOARD }) {
+    return actorPositionsInRegion(this, { actor, filter, filterMode, positionAxis, positionComparator, positionTarget, boardScope })
   }
 
   positionMetricTotal({ positions, operator, boardScope = AFTER_BOARD }) {

@@ -77,7 +77,7 @@ function applyCombinatorialFilter(plan, result, analysis) {
 
 function censusSubjectPositions(plan, analysis, boardScope = 'after') {
   if (plan.positionAxis) {
-    return analysis.positionFilteredPositions({
+    return analysis.actorPositionsInRegion({
       actor: plan.subject,
       filter: plan.subjectFilter,
       filterMode: plan.subjectFilterMode,

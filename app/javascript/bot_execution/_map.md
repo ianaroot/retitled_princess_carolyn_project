@@ -22,7 +22,7 @@ Responsibilities:
 - **Filter matching**: `matchesFilter` / `matchesSpeciesFilter` / `singularActorMatchesFilter` — apply include/exclude species filters.
 - **Mobility**: `positionMobility` (move-count for a square), `availableMovesFrom` (cached rule lookup).
 - **Caching**: five `Map`/object caches (`_relationalResultCache`, `_relationalActorPositionsCache`, `_relatedTargetPositionsCache`, `_availableMovesCache`, `_boardQueryCache`) — all keyed by `boardScope:...` strings.
-- **Delegates**: thin one-line methods (`unaryTotal`, `relationalResult`, `positionFilteredPositions`, etc.) that forward to the analysis modules below. This keeps callers from importing those modules directly.
+- **Delegates**: thin one-line methods (`unaryTotal`, `relationalResult`, `actorPositionsInRegion`, etc.) that forward to the analysis modules below. This keeps callers from importing those modules directly.
 
 ---
 
@@ -55,7 +55,7 @@ Key exports:
 ### `position_analysis.js`
 Filters actor positions by a board-axis predicate (`rank`, `file`, or `square`) and then measures the survivors (`count`, `value`, `mobility`).
 
-Exports: `positionFilteredPositions`, `positionMetricTotal`.
+Exports: `actorPositionsInRegion`, `positionMetricTotal`.
 
 ---
 

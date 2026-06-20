@@ -6,8 +6,8 @@ import { aggregateOrNull, compareValues } from "bot_execution/utils"
 
 const AFTER_BOARD = "after"
 
-export function positionFilteredPositions(analysis, { actor, filter = "any", filterMode = null, positionAxis, positionComparator, positionTarget, boardScope = AFTER_BOARD }) {
-  return profileCollector.measure('cma.v2.position_filtered_positions', () => {
+export function actorPositionsInRegion(analysis, { actor, filter = "any", filterMode = null, positionAxis, positionComparator, positionTarget, boardScope = AFTER_BOARD }) {
+  return profileCollector.measure('cma.v2.actor_positions_in_region', () => {
     const team = analysis.movedPieceTeam()
     const candidates = relationalActorPositions(analysis, { actor, filter, filterMode, boardScope })
     return candidates.filter(position => positionSatisfied(position, team, { positionAxis, positionComparator, positionTarget }))

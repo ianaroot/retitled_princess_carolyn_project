@@ -12,7 +12,7 @@ import { shieldAttackerPositions } from '../relational_utils.js'
 function fakeAnalysis({
   relationalResult = { pairs: [], subjectPositions: [], targetPositions: [] },
   capturedPos = null,
-  positionFilteredPositions = [],
+  actorPositionsInRegion = [],
   relationalActorPositions = []
 } = {}) {
   // Each query accepts a value or a function — function form lets a test branch
@@ -21,7 +21,7 @@ function fakeAnalysis({
   return {
     relationalResult: callOrReturn(relationalResult),
     capturedPiecePosition: () => capturedPos,
-    positionFilteredPositions: callOrReturn(positionFilteredPositions),
+    actorPositionsInRegion: callOrReturn(actorPositionsInRegion),
     relationalActorPositions: callOrReturn(relationalActorPositions),
     afterBoard: () => ({})
   }
@@ -76,8 +76,8 @@ describe('buildAggregatedResult', () => {
     })
   })
 
-  it('uses positionFilteredPositions for a region census; keeps positions out of the subjectPositions union', () => {
-    const analysis = fakeAnalysis({ positionFilteredPositions: [12, 20] })
+  it('uses actorPositionsInRegion for a region census; keeps positions out of the subjectPositions union', () => {
+    const analysis = fakeAnalysis({ actorPositionsInRegion: [12, 20] })
     const plan = censusPlan({ positionAxis: 'rank', positionComparator: 'equal_to', positionTarget: 1 })
 
     const result = buildAggregatedResult({ plans: [plan] }, analysis)
