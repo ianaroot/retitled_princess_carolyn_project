@@ -92,31 +92,22 @@ function relatedTargetPositionsForSubject(analysis, { operator, subjectPosition,
   return analysis.cachedRelatedTargetPositions(cacheKey, () => {
     return profileCollector.measure('cma.v2.related_target_positions_for_subject', () => {
       const board = analysis.boardForScope(boardScope)
-      const targetTeam = relationalTeamForActor(target, analysis.movedPieceTeam())
+      const targetTeam = actorTeam(target, analysis.movedPieceTeam())
       const boardQueryCache = analysis.boardQueryCache()
       let positions
       switch (operator) {
-        case "attack": {
-          const subjectTeam = board.teamAt(subjectPosition)
-          positions = cachedControlledSquares({
-            board,
-            attackerPosition: subjectPosition,
-            cache: boardQueryCache,
-            cacheScope: boardScope
-          }).filter((targetPosition) => {
-            return board.teamAt(targetPosition) === targetTeam && targetTeam !== subjectTeam
-          })
-          break
-        }
+        case "attack":
         case "defend": {
           const subjectTeam = board.teamAt(subjectPosition)
+          const sameTeam = operator === "defend"
           positions = cachedControlledSquares({
             board,
             attackerPosition: subjectPosition,
             cache: boardQueryCache,
             cacheScope: boardScope
           }).filter((targetPosition) => {
-            return board.teamAt(targetPosition) === targetTeam && targetTeam === subjectTeam
+            const occupantOnTargetTeam = board.teamAt(targetPosition) === targetTeam
+            return occupantOnTargetTeam && (sameTeam ? targetTeam === subjectTeam : targetTeam !== subjectTeam)
           })
           break
         }
@@ -141,21 +132,6 @@ function relatedTargetPositionsForSubject(analysis, { operator, subjectPosition,
       return positions
     })
   })
-}
-
-function relationalTeamForActor(actor, movingTeam) {
-  switch (actor) {
-    case "allied":
-    case "moved_piece":
-    case "enemy":
-    case "enemy_moved_piece":
-      return actorTeam(actor, movingTeam)
-    case "captured_piece":
-    case "enemy_captured_piece":
-      throw new Error(`Captured types not supported in relational context: ${actor}`)
-    default:
-      throw new Error(`Unsupported V2 relational team actor: ${actor}`)
-  }
 }
 
 export function metricForPositions(analysis, { metric, positions, boardScope = AFTER_BOARD }) {
