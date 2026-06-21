@@ -14,12 +14,11 @@ export function unaryTotal(analysis, { actor, filter = "any", filterMode = null,
         return generalSubjectUnaryTotal(analysis, { actor, filter, filterMode, operator, boardScope })
       case "moved_piece":
         return movedPieceUnaryTotal(analysis, { filter, filterMode, operator, boardScope })
-      case "captured_piece":
-        return capturedPieceUnaryTotal(analysis, { filter, filterMode, operator })
       case "enemy_moved_piece":
         return enemyMovedPieceUnaryTotal(analysis, { filter, filterMode, operator, boardScope })
+      case "captured_piece":
       case "enemy_captured_piece":
-        return enemyCapturedPieceUnaryTotal(analysis, { filter, filterMode, operator })
+        return capturedActorUnaryTotal(analysis, { actor, filter, filterMode, operator })
       default:
         throw new Error(`Unsupported V2 unary actor: ${actor}`)
     }
@@ -72,31 +71,16 @@ function movedPieceUnaryTotal(analysis, { filter = "any", filterMode = null, ope
   })
 }
 
-function capturedPieceUnaryTotal(analysis, { filter = "any", filterMode = null, operator }) {
-  const resolved = analysis.resolvedCapturedPiece()
-  if (!resolved) { return operator === 'count' ? 0 : null }
-  if (!analysis.matchesFilter({ species: resolved.species, filter, filterMode })) { return operator === 'count' ? 0 : null }
+function capturedActorUnaryTotal(analysis, { actor, filter = "any", filterMode = null, operator }) {
+  const resolved = actor === "captured_piece" ? analysis.resolvedCapturedPiece() : analysis.resolvedEnemyCapturedPiece()
+  if (!resolved || !analysis.matchesFilter({ species: resolved.species, filter, filterMode })) { return operator === 'count' ? 0 : null }
   switch (operator) {
     case "count":
       return 1
     case "value":
       return analysis.individualComparableValue(resolved.species)
     default:
-      throw new Error(`Unsupported V2 unary operator for captured_piece: ${operator}`)
-  }
-}
-
-function enemyCapturedPieceUnaryTotal(analysis, { filter = "any", filterMode = null, operator }) {
-  const resolved = analysis.resolvedEnemyCapturedPiece()
-  if (!resolved) { return operator === 'count' ? 0 : null }
-  if (!analysis.matchesFilter({ species: resolved.species, filter, filterMode })) { return operator === 'count' ? 0 : null }
-  switch (operator) {
-    case "count":
-      return 1
-    case "value":
-      return analysis.individualComparableValue(resolved.species)
-    default:
-      throw new Error(`Unsupported V2 unary operator for enemy_captured_piece: ${operator}`)
+      throw new Error(`Unsupported V2 unary operator for ${actor}: ${operator}`)
   }
 }
 
@@ -116,8 +100,11 @@ function enemyMovedPieceUnaryTotal(analysis, { filter = "any", filterMode = null
         // null would treat off-board as undefined and make "mobility < X" fail for captured pieces
         // (consistent with absent-actor null semantics). Currently 0 — revisit if vacuous-truth
         // problems emerge from this path.
-        if (!resolved.presentOnBoard) return 0
-        return analysis.positionMobility(resolved.position, boardScope)
+        if (!resolved.presentOnBoard) {
+          return 0
+        } else {
+          return analysis.positionMobility(resolved.position, boardScope)
+        }
       default:
         throw new Error(`Unsupported V2 unary operator for enemy_moved_piece: ${operator}`)
     }
