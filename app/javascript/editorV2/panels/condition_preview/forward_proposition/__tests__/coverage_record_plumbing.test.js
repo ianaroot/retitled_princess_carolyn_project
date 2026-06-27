@@ -18,7 +18,7 @@ vi.mock('editorV2/panels/condition_preview/forward_proposition/coverage_record',
 
 import { buildCombinedPlan } from 'editorV2/panels/condition_preview/plans/plan'
 import {
-  candidateIdentity,
+  exampleFingerprint,
   MOVE_KIND_CASTLE, MOVE_KIND_PROMOTION, MOVE_KIND_EN_PASSANT
 } from 'editorV2/panels/condition_preview/shared/example_utils'
 import { STANDARD_KEY } from 'editorV2/panels/condition_preview/forward_proposition/coverage_record'
@@ -37,7 +37,7 @@ function seededRandom(seed = 1) {
 function makeAdder() {
   const seen = new Set()
   return function addUnique(example, pool) {
-    const id = candidateIdentity(example)
+    const id = exampleFingerprint(example)
     if (seen.has(id)) { return }
     seen.add(id)
     pool.push(example)

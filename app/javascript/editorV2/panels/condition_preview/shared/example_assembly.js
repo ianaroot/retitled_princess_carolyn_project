@@ -1,7 +1,7 @@
 import { enrichExample } from 'editorV2/panels/condition_preview/shared/enrichment'
 import { selectDiverseExamples, uniqueExamples } from 'editorV2/panels/condition_preview/shared/diversity_selection'
 import {
-  candidateIdentity,
+  exampleFingerprint,
   MOVE_KIND_CASTLE, MOVE_KIND_PROMOTION, MOVE_KIND_EN_PASSANT
 } from 'editorV2/panels/condition_preview/shared/example_utils'
 import { shuffled } from 'editorV2/panels/condition_preview/shared/board_utils'
@@ -31,8 +31,8 @@ function finalizeExamples(baseExamples, combinedPlan, maxExamples, random) {
     Math.max(1, Math.round(maxExamples * ENRICHMENT_PROBABILITY))
   )
   const selectedEnriched = selectDiverseExamples(uniqueExamples(enrichedCandidates), desiredEnrichedCount)
-  const selectedEnrichedIds = new Set(selectedEnriched.map(candidateIdentity))
-  const remainingBase = baseExamples.filter(example => !selectedEnrichedIds.has(candidateIdentity(example)))
+  const selectedEnrichedIds = new Set(selectedEnriched.map(exampleFingerprint))
+  const remainingBase = baseExamples.filter(example => !selectedEnrichedIds.has(exampleFingerprint(example)))
   const selectedBase = selectDiverseExamples(shuffled(remainingBase, random), Math.max(0, maxExamples - selectedEnriched.length))
   const combined = shuffled(uniqueExamples([...selectedBase, ...selectedEnriched]), random)
   if (combined.length >= maxExamples) {

@@ -112,7 +112,7 @@ function buildEnrichmentPlacementPolicy(example, random) {
   }
 }
 
-function deriveVerifiedExample({ combinedPlan, priorBoard, moveObject, baseExample, suffix }) {
+function deriveVerifiedExample({ combinedPlan, priorBoard, moveObject, baseExample }) {
   let recomputedMoveObject
   try {
     recomputedMoveObject = Rules.getMoveObject(moveObject.startPosition, moveObject.endPosition, priorBoard)
@@ -145,7 +145,6 @@ function deriveVerifiedExample({ combinedPlan, priorBoard, moveObject, baseExamp
     result: aggregatedResult,
     highlights: buildAggregatedHighlights(combinedPlan, recomputedMoveObject, aggregatedResult, priorBoard, afterBoard),
     variantType: movedPieceInRelation ? 'involved' : 'separate',
-    geometryKey: `${baseExample.geometryKey}:enriched:${suffix}`,
     movedPieceInRelation,
     moveKind: baseExample.moveKind,
     sound: soundForMove(priorBoard, afterBoard, recomputedMoveObject),
@@ -173,8 +172,7 @@ export function enrichExample(example, combinedPlan, random) {
       combinedPlan,
       priorBoard: trialPriorBoard,
       moveObject: example.moveObject,
-      baseExample: example,
-      suffix: `${addedCount + 1}:${placement.position}:${placement.team}${placement.species}`
+      baseExample: example
     })
 
     if (!derived) { break }

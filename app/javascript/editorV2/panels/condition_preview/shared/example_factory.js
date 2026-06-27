@@ -12,7 +12,7 @@ export class ExampleFactory {
     this.combinedPlan = combinedPlan
   }
 
-  build(candidate, { generationPath, geometryKey, moveKind = null, binding = null }) {
+  build(candidate, { generationPath, moveKind = null, binding = null }) {
     const aggregatedResult = buildAggregatedResult(this.combinedPlan, candidate.analysis)
     if (!aggregatedResult) { return null }
 
@@ -31,7 +31,6 @@ export class ExampleFactory {
       result: aggregatedResult,
       highlights,
       variantType: movedPieceInRelation ? 'involved' : 'separate',
-      geometryKey,
       movedPieceInRelation,
       moveKind: moveKind ?? moveKindForMoveObject(candidate.moveObject),
       sound: soundForMove(candidate.priorBoard, candidate.afterBoard, candidate.moveObject),

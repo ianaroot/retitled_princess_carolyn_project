@@ -1,9 +1,9 @@
 import { materialValue } from 'gameplay/board_query_utils'
-import { candidateIdentity } from 'editorV2/panels/condition_preview/shared/example_utils'
+import { exampleFingerprint } from 'editorV2/panels/condition_preview/shared/example_utils'
 
 function subjectSpeciesSignature(example) {
   const positions = example.result?.subjectPositions ?? []
-  if (positions.length === 0) { return example.geometryKey ?? '' }
+  if (positions.length === 0) { return '' }
   return positions.map(position => example.afterBoard.pieceTypeAt(position)).join(',')
 }
 
@@ -25,10 +25,6 @@ function bindingComboSignature(example) {
 
 function variantSignature(example) {
   return example.variantType
-}
-
-function geometrySignature(example) {
-  return example.geometryKey ?? ''
 }
 
 // Sum of material values across a side's pieces. Bucketing by the
@@ -55,7 +51,7 @@ function valueComboSignature(example) {
 export function uniqueExamples(examples) {
   const seen = new Set()
   return examples.filter(example => {
-    const identity = candidateIdentity(example)
+    const identity = exampleFingerprint(example)
     if (seen.has(identity)) { return false }
     seen.add(identity)
     return true
@@ -74,14 +70,14 @@ function roundRobinAppend({ selected, candidatesByKey, maxExamples, seenIdentiti
 
     for (let index = 0; index < queue.length && selected.length < maxExamples; index++) {
       const bucket = queue[index]
-      while (bucket.candidates.length > 0 && seenIdentities.has(candidateIdentity(bucket.candidates[0]))) {
+      while (bucket.candidates.length > 0 && seenIdentities.has(exampleFingerprint(bucket.candidates[0]))) {
         bucket.candidates.shift()
       }
       if (bucket.candidates.length === 0) { continue }
 
       const next = bucket.candidates.shift()
       selected.push(next)
-      seenIdentities.add(candidateIdentity(next))
+      seenIdentities.add(exampleFingerprint(next))
       progressed = true
       added = true
     }
@@ -101,8 +97,7 @@ const DIVERSITY_DIMENSIONS = [
   targetSpeciesSignature,
   speciesPairSignature,
   valueComboSignature,
-  variantSignature,
-  geometrySignature
+  variantSignature
 ]
 
 export function selectDiverseExamples(candidates, maxExamples) {
@@ -122,7 +117,7 @@ export function selectDiverseExamples(candidates, maxExamples) {
     if (selected.length >= maxExamples) { return selected.slice(0, maxExamples) }
   }
 
-  const remaining = candidates.filter(candidate => !seenIdentities.has(candidateIdentity(candidate)))
+  const remaining = candidates.filter(candidate => !seenIdentities.has(exampleFingerprint(candidate)))
   for (let index = 0; index < remaining.length && selected.length < maxExamples; index++) {
     selected.push(remaining[index])
   }

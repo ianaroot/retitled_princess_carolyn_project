@@ -1,5 +1,5 @@
 import { buildCombinedPlan } from 'editorV2/panels/condition_preview/plans/plan'
-import { candidateIdentity } from 'editorV2/panels/condition_preview/shared/example_utils'
+import { exampleFingerprint } from 'editorV2/panels/condition_preview/shared/example_utils'
 import { assembleWithSpecialQuota } from 'editorV2/panels/condition_preview/shared/example_assembly'
 import { collectForwardPropositionExamples } from 'editorV2/panels/condition_preview/forward_proposition/collect'
 
@@ -12,7 +12,7 @@ const NO_EXAMPLES_REASON = "Couldn't build a verified example for this condition
 
 function makeAdder(seen) {
   return function addUnique(example, pool) {
-    const id = candidateIdentity(example)
+    const id = exampleFingerprint(example)
     if (seen.has(id)) { return }
     seen.add(id)
     pool.push(example)

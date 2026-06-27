@@ -126,7 +126,7 @@ export function soundForMove(priorBoard, afterBoard, moveObject) {
   return 'move'
 }
 
-export function candidateIdentity(example) {
+export function exampleFingerprint(example) {
   if (example.result === null) {
     return [
       example.moveKind || MOVE_KIND_STANDARD,
@@ -141,7 +141,6 @@ export function candidateIdentity(example) {
     example.moveKind || MOVE_KIND_STANDARD,
     example.moveObject.startPosition,
     example.moveObject.endPosition,
-    example.geometryKey ?? '',
     subjectSig,
     targetSig,
     example.variantType ?? ''

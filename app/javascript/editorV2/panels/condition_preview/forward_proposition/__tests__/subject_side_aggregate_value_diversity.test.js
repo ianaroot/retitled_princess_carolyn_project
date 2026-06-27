@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildCombinedPlan } from 'editorV2/panels/condition_preview/plans/plan'
-import { candidateIdentity } from 'editorV2/panels/condition_preview/shared/example_utils'
+import { exampleFingerprint } from 'editorV2/panels/condition_preview/shared/example_utils'
 import { collectForwardPropositionExamples } from 'editorV2/panels/condition_preview/forward_proposition/collect'
 
 function seededRandom(seed = 1) {
@@ -14,7 +14,7 @@ function seededRandom(seed = 1) {
 function makeAdder() {
   const seen = new Set()
   return function addUnique(example, pool) {
-    const id = candidateIdentity(example)
+    const id = exampleFingerprint(example)
     if (seen.has(id)) { return }
     seen.add(id)
     pool.push(example)
