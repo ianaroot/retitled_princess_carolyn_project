@@ -1,5 +1,5 @@
-import CandidateMoveAnalysisV2 from 'bot_execution/candidate_move_analysis_v2'
 import ConditionEvaluatorV2 from 'bot_execution/condition_evaluator_v2'
+import { Candidate } from 'editorV2/panels/condition_preview/shared/candidate'
 import Board from 'gameplay/board'
 import Rules from 'gameplay/rules'
 import { shuffled, legalEnrichmentSpecies, ALL_POSITIONS } from 'editorV2/panels/condition_preview/shared/board_utils'
@@ -123,16 +123,16 @@ function deriveVerifiedExample({ combinedPlan, priorBoard, moveObject, baseExamp
   if (moveKindForMoveObject(recomputedMoveObject) !== baseExample.moveKind) { return null }
   if (!legalPriorTurnState(priorBoard, recomputedMoveObject)) { return null }
 
+  const candidate = new Candidate({ priorBoard, moveObject: recomputedMoveObject })
+
   const evaluator = new ConditionEvaluatorV2()
   const input = { board: priorBoard, moveObject: recomputedMoveObject }
   if (!combinedPlan.evaluationPayloads.every(payload => safeEvaluate(evaluator, payload, input))) { return null }
 
-  const analysis = new CandidateMoveAnalysisV2(input)
-  const aggregatedResult = buildAggregatedResult(combinedPlan, analysis)
+  const aggregatedResult = buildAggregatedResult(combinedPlan, candidate.analysis)
   if (!aggregatedResult) { return null }
 
-  const afterBoard = priorBoard.lightClone()
-  afterBoard._hypotheticallyMovePiece(recomputedMoveObject)
+  const afterBoard = candidate.afterBoard
   const movedPieceInRelation = (
     aggregatedResult.subjectPositions.includes(recomputedMoveObject.endPosition) ||
     aggregatedResult.targetPositions.includes(recomputedMoveObject.endPosition)
