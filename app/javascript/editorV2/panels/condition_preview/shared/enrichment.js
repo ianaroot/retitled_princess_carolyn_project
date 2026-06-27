@@ -155,7 +155,7 @@ function deriveVerifiedExample({ combinedPlan, priorBoard, moveObject, baseExamp
 
 export function enrichExample(example, combinedPlan, random) {
   const policy = buildEnrichmentPlacementPolicy(example, random)
-  const basePriorBoard = example.priorBoard.lightClone()
+  let basePriorBoard = example.priorBoard.lightClone()
   let bestExample = example
   let addedCount = 0
 
@@ -178,7 +178,7 @@ export function enrichExample(example, combinedPlan, random) {
     if (!derived) { break }
 
     bestExample = derived
-    basePriorBoard.layOut = Board._deepCopy(trialPriorBoard.layOut)
+    basePriorBoard = trialPriorBoard
     addedCount += 1
   }
 
