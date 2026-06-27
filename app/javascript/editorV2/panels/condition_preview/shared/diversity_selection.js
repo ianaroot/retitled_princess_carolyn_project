@@ -3,7 +3,6 @@ import { exampleFingerprint } from 'editorV2/panels/condition_preview/shared/exa
 
 function subjectSpeciesSignature(example) {
   const positions = example.result?.subjectPositions ?? []
-  if (positions.length === 0) { return '' }
   return positions.map(position => example.afterBoard.pieceTypeAt(position)).join(',')
 }
 
