@@ -339,11 +339,6 @@ class Board {
     this.layOut[position] = pieceObject
   }
 
-  _promotePawn(position){
-    let teamString = this.teamAt(position);
-    this.layOut[position] = teamString  + Board.QUEEN
-  }
-
   teamAt(position){
     position = Board.convertPositionFromAlphaNumeric(position)
     if( !Board._inBounds(position) ){
