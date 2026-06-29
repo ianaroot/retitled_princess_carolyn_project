@@ -7,22 +7,20 @@ const AFTER_BOARD = "after"
 const PRIOR_BOARD = "prior"
 
 export function unaryTotal(analysis, { actor, filter = "any", filterMode = null, operator, boardScope = AFTER_BOARD }) {
-  return profileCollector.measure('cma.v2.unary_total', () => {
-    switch (actor) {
-      case "allied":
-      case "enemy":
-        return generalSubjectUnaryTotal(analysis, { actor, filter, filterMode, operator, boardScope })
-      case "moved_piece":
-        return movedPieceUnaryTotal(analysis, { filter, filterMode, operator, boardScope })
-      case "enemy_moved_piece":
-        return enemyMovedPieceUnaryTotal(analysis, { filter, filterMode, operator, boardScope })
-      case "captured_piece":
-      case "enemy_captured_piece":
-        return capturedActorUnaryTotal(analysis, { actor, filter, filterMode, operator })
-      default:
-        throw new Error(`Unsupported V2 unary actor: ${actor}`)
-    }
-  })
+  switch (actor) {
+    case "allied":
+    case "enemy":
+      return generalSubjectUnaryTotal(analysis, { actor, filter, filterMode, operator, boardScope })
+    case "moved_piece":
+      return movedPieceUnaryTotal(analysis, { filter, filterMode, operator, boardScope })
+    case "enemy_moved_piece":
+      return enemyMovedPieceUnaryTotal(analysis, { filter, filterMode, operator, boardScope })
+    case "captured_piece":
+    case "enemy_captured_piece":
+      return capturedActorUnaryTotal(analysis, { actor, filter, filterMode, operator })
+    default:
+      throw new Error(`Unsupported V2 unary actor: ${actor}`)
+  }
 }
 
 export function priorComparisonSourceTotal(analysis, { subject, subjectFilter, subjectFilterMode, operator }) {
