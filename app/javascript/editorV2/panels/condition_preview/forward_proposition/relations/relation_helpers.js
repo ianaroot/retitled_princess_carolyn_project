@@ -1,6 +1,6 @@
 import { ALL_POSITIONS, WEIGHTED_SPECIES_DISTRIBUTION, pieceCode } from 'editorV2/panels/condition_preview/shared/board_utils'
 import { materialValue } from 'gameplay/board_query_utils'
-import { placePiece, legalPlacementForSpecies } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece, legalPlacementForSpecies } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import { respectsAllCaps } from 'editorV2/panels/condition_preview/forward_proposition/respect_caps'
 import { regionPossiblyContains } from 'editorV2/panels/condition_preview/forward_proposition/region'
 
@@ -56,7 +56,7 @@ export function candidatesForSide(side, pieces) {
 export function applyOne(pieces, candidate, ctx, options = {}) {
   if (candidate.kind === 'existing') { return pieces }
   if (!respectsAllCaps(candidate.team, candidate.species, candidate.position, ctx, pieces, options)) { return null }
-  return placePiece(pieces, candidate.position, pieceCode(candidate.team, candidate.species))
+  return withPiece(pieces, candidate.position, pieceCode(candidate.team, candidate.species))
 }
 
 export function singularPosition(ctx, actorKey) {

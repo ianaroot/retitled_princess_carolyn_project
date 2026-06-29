@@ -1,7 +1,7 @@
 import {
   pieceCode, buildBoardFromLayout, buildLayoutFromPieces
 } from 'editorV2/panels/condition_preview/shared/board_utils'
-import { placePiece } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import { intersectRegions } from 'editorV2/panels/condition_preview/forward_proposition/region'
 import { materializeRegion } from 'editorV2/panels/condition_preview/forward_proposition/materialize_region'
 import { committedSpecies } from 'editorV2/panels/condition_preview/shared/singular_constraints'
@@ -27,7 +27,7 @@ function buildBoardFromCommittedSingulars(singulars, committed) {
     if (species === null || s.region.kind !== 'set') { continue }
     const pos = [...s.region.squares][0]
     if (pos === undefined) { continue }
-    const next = placePiece(map, pos, pieceCode(s.team, species))
+    const next = withPiece(map, pos, pieceCode(s.team, species))
     if (next === null) { continue }
     map = next
   }

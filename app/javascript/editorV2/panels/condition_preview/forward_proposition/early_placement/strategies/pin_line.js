@@ -1,7 +1,7 @@
 import Board from 'gameplay/board'
 import { QUEEN_RAY_STEPS } from 'gameplay/board_query_utils'
 import { ALL_POSITIONS, shuffled, pieceCode, pickWeightedSpecies } from 'editorV2/panels/condition_preview/shared/board_utils'
-import { placePiece, legalPlacementForSpecies } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece, legalPlacementForSpecies } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import { placeKingOnRayThroughTarget } from 'editorV2/panels/condition_preview/shared/king_placement'
 import { placeSliderBeyondTarget } from 'editorV2/panels/condition_preview/forward_proposition/pin_geometry'
 import { respectsAllCaps } from 'editorV2/panels/condition_preview/forward_proposition/respect_caps'
@@ -86,7 +86,7 @@ function tryAtTargetAndStep(entry, constraint, targetPos, step, ctx, pieces, ran
   if (targetSpecies === null) { return null }
   if (!respectsAllCaps(constraint.team, targetSpecies, targetPos, ctx, pieces)) { return null }
 
-  let next = placePiece(pieces, targetPos, pieceCode(constraint.team, targetSpecies))
+  let next = withPiece(pieces, targetPos, pieceCode(constraint.team, targetSpecies))
   if (next === null) { return null }
 
   next = placeKingOnRayThroughTarget({

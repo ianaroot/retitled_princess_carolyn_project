@@ -1,5 +1,5 @@
 import { buildBoardFromLayout, buildLayoutFromPieces, pieceCode } from 'editorV2/panels/condition_preview/shared/board_utils'
-import { placePiece, teamHasKing } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece, teamHasKing } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import {
   originCandidatesForSpecies, sliderPathClear
 } from 'editorV2/panels/condition_preview/shared/geometry_utils'
@@ -19,7 +19,7 @@ export function legalOriginCandidates(pieces, destination, team, species) {
 export function piecesWithMovedAt(pieces, fromSquare, toSquare, team, species) {
   const result = new Map(pieces)
   result.delete(fromSquare)
-  return placePiece(result, toSquare, pieceCode(team, species))
+  return withPiece(result, toSquare, pieceCode(team, species))
 }
 
 // Mobility-at-queryPos on a hypothetical board where moved_piece has been

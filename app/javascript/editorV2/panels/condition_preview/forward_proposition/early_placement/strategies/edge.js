@@ -1,5 +1,5 @@
 import { ALL_POSITIONS, pieceCode, pickWeightedSpecies, shuffled } from 'editorV2/panels/condition_preview/shared/board_utils'
-import { placePiece, legalPlacementForSpecies } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece, legalPlacementForSpecies } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import { isEdgePosition } from 'editorV2/panels/condition_preview/forward_proposition/mobility/edge_bias'
 import { respectsAllCaps } from 'editorV2/panels/condition_preview/forward_proposition/respect_caps'
 import { commitSingularRegion } from 'editorV2/panels/condition_preview/shared/singular_constraints'
@@ -69,7 +69,7 @@ function tryPlaceAtEdge(entry, constraint, edgeSquares, ctx, pieces, random) {
     if (!legalPlacementForSpecies(square, species)) { continue }
     if (!respectsAllCaps(constraint.team, species, square, ctx, pieces)) { continue }
     const code = pieceCode(constraint.team, species)
-    const nextPieces = placePiece(pieces, square, code)
+    const nextPieces = withPiece(pieces, square, code)
     if (nextPieces === null) { continue }
 
     if (entry.source === 'singular') {

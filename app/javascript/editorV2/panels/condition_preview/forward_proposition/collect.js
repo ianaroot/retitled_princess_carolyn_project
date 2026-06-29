@@ -42,7 +42,7 @@ function runScenario({
       continue
     }
     profileCollector.increment('forward_proposition.attempt.verifier_passed')
-    const example = factory.build(candidate, { generationPath: 'forward-proposition', binding })
+    const example = factory.build(candidate, { generationPath: 'forward-proposition', binding, priorPieces: move.priorPieces })
     if (!example) { continue }
     bump(produced, 'forward-proposition')
     bump(produced, shiftKey)

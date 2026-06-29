@@ -3,7 +3,7 @@ import {
   buildBoardFromLayout, buildLayoutFromPieces, pieceCode, shuffled
 } from 'editorV2/panels/condition_preview/shared/board_utils'
 import { adjacentNeighborPositions, attackerCandidatesFor } from 'editorV2/panels/condition_preview/shared/geometry_utils'
-import { placePiece } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import { respectsAllCaps } from 'editorV2/panels/condition_preview/forward_proposition/respect_caps'
 
 const ENEMY_ATTACKER_SPECIES = Object.freeze([
@@ -45,7 +45,7 @@ function tryPlaceEnemyAttacker(targetSquare, kingPosition, enemyTeam, board, ctx
     for (const attackerPos of attackerPositions) {
       if (kingAttackerSet.has(attackerPos)) { continue }
       if (!respectsAllCaps(enemyTeam, species, attackerPos, ctx, pieces)) { continue }
-      const next = placePiece(pieces, attackerPos, pieceCode(enemyTeam, species))
+      const next = withPiece(pieces, attackerPos, pieceCode(enemyTeam, species))
       if (next !== null) { return next }
     }
   }

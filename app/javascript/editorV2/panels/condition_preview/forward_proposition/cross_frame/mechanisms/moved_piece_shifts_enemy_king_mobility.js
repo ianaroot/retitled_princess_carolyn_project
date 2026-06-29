@@ -3,7 +3,7 @@ import { pieceControlsSquare } from 'gameplay/board_query_utils'
 import {
   buildBoardFromLayout, buildLayoutFromPieces, pieceCode, shuffled
 } from 'editorV2/panels/condition_preview/shared/board_utils'
-import { placePiece, positionOfKing } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece, positionOfKing } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import { adjacentNeighborPositions } from 'editorV2/panels/condition_preview/shared/geometry_utils'
 import { mobilityAt } from 'gameplay/mobility'
 import {
@@ -87,7 +87,7 @@ function tryAttackingKingAdjacent({ entry, ctx, pieces, random, moved, destinati
 function attackedKingAdjacentFromOrigin(pieces, origin, destination, team, species, kingAdjacent) {
   const base = new Map(pieces)
   base.delete(destination)
-  const hypothetical = placePiece(base, origin, pieceCode(team, species))
+  const hypothetical = withPiece(base, origin, pieceCode(team, species))
   if (hypothetical === null) { return [] }
   const board = buildBoardFromLayout(buildLayoutFromPieces(hypothetical))
   return kingAdjacent.filter(sq =>

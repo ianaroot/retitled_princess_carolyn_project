@@ -1,5 +1,5 @@
 import { ALL_POSITIONS, pieceCode } from 'editorV2/panels/condition_preview/shared/board_utils'
-import { placePiece, legalPlacementForSpecies } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece, legalPlacementForSpecies } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import { aggregateMobilityRangeForSingular, edgeBiasedShuffle } from 'editorV2/panels/condition_preview/forward_proposition/mobility/edge_bias'
 import { applyRelationsToAnchors } from 'editorV2/panels/condition_preview/forward_proposition/commit_singulars_helpers'
 import { respectsAllCaps } from 'editorV2/panels/condition_preview/forward_proposition/respect_caps'
@@ -86,7 +86,7 @@ function virtualPiecesFor(singulars, committed, earlyPieces) {
     const pos = [...s.region.squares][0]
     if (pos === undefined) { continue }
     if (map.has(pos)) { continue }
-    const next = placePiece(map, pos, pieceCode(s.team, species))
+    const next = withPiece(map, pos, pieceCode(s.team, species))
     if (next === null) { continue }
     map = next
   }

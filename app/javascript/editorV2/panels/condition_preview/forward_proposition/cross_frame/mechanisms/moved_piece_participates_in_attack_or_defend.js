@@ -5,7 +5,7 @@ import {
 import {
   attackerCandidatesFor, controlledSquaresForPieceAt, originCandidatesForSpecies
 } from 'editorV2/panels/condition_preview/shared/geometry_utils'
-import { placePiece } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import {
   singularSquare, placeableSpecies, ensureRolePieceAt, commitPriorRegion,
   otherSidePropositionFor
@@ -240,7 +240,7 @@ function relevantControlledTargets(board, pieces, attackerPosition, targetTeam, 
 function withMovedAt(pieces, fromSquare, toSquare, team, species) {
   const next = new Map(pieces)
   next.delete(fromSquare)
-  return placePiece(next, toSquare, pieceCode(team, species))
+  return withPiece(next, toSquare, pieceCode(team, species))
 }
 
 function commitWithPlacement({ placement, species, placerTeam, ctx, pieces, destination, random }) {

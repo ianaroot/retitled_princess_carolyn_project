@@ -3,7 +3,7 @@ import { materialValue } from 'gameplay/board_query_utils'
 import { mobilityAt } from 'gameplay/mobility'
 import { valueComparisonEntryPasses } from 'editorV2/panels/condition_preview/forward_proposition/singulars'
 import { originCandidatesForSpecies } from 'editorV2/panels/condition_preview/shared/geometry_utils'
-import { placePiece, legalPlacementForSpecies } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece, legalPlacementForSpecies } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import { placeKingInStalemate } from 'editorV2/panels/condition_preview/shared/king_placement'
 import { respectsAllCaps } from 'editorV2/panels/condition_preview/forward_proposition/respect_caps'
 import {
@@ -52,7 +52,7 @@ function handleEnemyMovedPiece(pieces, ctx, random) {
   for (const species of candidates) {
     const tryPos = pickPlacementCandidate(pieces, species, random)
     if (tryPos === null) { continue }
-    const candidate = placePiece(pieces, tryPos, pieceCode(enemyMoved.team, species))
+    const candidate = withPiece(pieces, tryPos, pieceCode(enemyMoved.team, species))
     if (candidate === null) { continue }
     const board = buildBoardFromLayout(buildLayoutFromPieces(candidate))
     if (mobilityAt(board, tryPos) !== 0) { continue }

@@ -36,7 +36,7 @@ export function pawnCount(pieces, team) {
 function teamOf(piece) { return piece.charAt(0) }
 function speciesOf(piece) { return piece.slice(1) }
 
-export function placePiece(pieces, position, piece) {
+export function withPiece(pieces, position, piece) {
   if (pieces.has(position)) { return null }
   const species = speciesOf(piece)
   const team = teamOf(piece)

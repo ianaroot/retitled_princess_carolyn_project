@@ -2,7 +2,7 @@ import Board from 'gameplay/board'
 import { controllingPositions, nextPositionOnRay } from 'gameplay/board_query_utils'
 import { ALL_POSITIONS, buildBoardFromLayout, buildLayoutFromPieces, pieceCode, shuffled } from 'editorV2/panels/condition_preview/shared/board_utils'
 import { attackerCandidatesFor } from 'editorV2/panels/condition_preview/shared/geometry_utils'
-import { placePiece, teamHasKing, legalPlacementForSpecies, positionOfKing } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece, teamHasKing, legalPlacementForSpecies, positionOfKing } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import { commitMovedPiece } from 'editorV2/panels/condition_preview/shared/singular_constraints'
 import { respectsAllCaps } from 'editorV2/panels/condition_preview/forward_proposition/respect_caps'
 
@@ -21,7 +21,7 @@ export function placeKingDeliberately(pieces, team, frame, ctx, random) {
 
   for (const pos of candidates) {
     if (!isLegalKingSquare({ pieces, pos, team, requireOutOfCheck, ctx })) { continue }
-    const next = placePiece(pieces, pos, `${team}${Board.KING}`)
+    const next = withPiece(pieces, pos, `${team}${Board.KING}`)
     if (next === null) { continue }
     return next
   }
@@ -47,7 +47,7 @@ export function placeKingOnRayThroughTarget({ pieces, team, frame, ctx, targetPo
 
   for (const pos of shuffled(candidates, random)) {
     if (!isLegalKingSquare({ pieces, pos, team, requireOutOfCheck, ctx })) { continue }
-    const next = placePiece(pieces, pos, ourKingCode)
+    const next = withPiece(pieces, pos, ourKingCode)
     if (next === null) { continue }
     return next
   }
@@ -88,7 +88,7 @@ export function placeKingInCheck({ pieces, team, frame, ctx, random }) {
   )
   for (const kingPos of candidates) {
     if (!isLegalKingSquare({ pieces, pos: kingPos, team, requireOutOfCheck: false, ctx })) { continue }
-    const withKing = placePiece(pieces, kingPos, `${team}${Board.KING}`)
+    const withKing = withPiece(pieces, kingPos, `${team}${Board.KING}`)
     if (withKing === null) { continue }
     const next = placeAttackerControlling({
       pieces: withKing, kingPos, attackerTeam: enemyTeam, ctx, random
@@ -108,7 +108,7 @@ function placeAttackerControlling({ pieces, kingPos, attackerTeam, ctx, random }
     for (const pos of candidates) {
       if (!legalPlacementForSpecies(pos, species)) { continue }
       if (!respectsAllCaps(attackerTeam, species, pos, ctx, pieces)) { continue }
-      const next = placePiece(pieces, pos, pieceCode(attackerTeam, species))
+      const next = withPiece(pieces, pos, pieceCode(attackerTeam, species))
       if (next !== null) { return next }
     }
   }
@@ -125,7 +125,7 @@ export function placeKingInStalemate({ pieces, team, frame, ctx, random }) {
 
   for (const kingPos of kingCandidates) {
     if (!isLegalKingSquare({ pieces, pos: kingPos, team, requireOutOfCheck: false, ctx })) { continue }
-    const withConstrainedKing = placePiece(pieces, kingPos, `${team}${Board.KING}`)
+    const withConstrainedKing = withPiece(pieces, kingPos, `${team}${Board.KING}`)
     if (withConstrainedKing === null) { continue }
 
     const enemyKingCandidates = shuffled(
@@ -133,7 +133,7 @@ export function placeKingInStalemate({ pieces, team, frame, ctx, random }) {
       random
     )
     for (const enemyKingPos of enemyKingCandidates) {
-      const withBothKings = placePiece(withConstrainedKing, enemyKingPos, `${enemyTeam}${Board.KING}`)
+      const withBothKings = withPiece(withConstrainedKing, enemyKingPos, `${enemyTeam}${Board.KING}`)
       if (withBothKings === null) { continue }
 
       const sealed = sealEscapeSquares({
@@ -225,7 +225,7 @@ function tryPlaceAlly({ pieces, escape, team, ctx, random }) {
   for (const s of shuffled(species, random)) {
     if (!legalPlacementForSpecies(escape, s)) { continue }
     if (!respectsAllCaps(team, s, escape, ctx, pieces)) { continue }
-    const next = placePiece(pieces, escape, pieceCode(team, s))
+    const next = withPiece(pieces, escape, pieceCode(team, s))
     if (next !== null) { return next }
   }
   return null
@@ -241,7 +241,7 @@ function tryPlaceEnemyAttacker({ pieces, escape, enemyTeam, ctx, random }) {
     for (const pos of candidates) {
       if (!legalPlacementForSpecies(pos, species)) { continue }
       if (!respectsAllCaps(enemyTeam, species, pos, ctx, pieces)) { continue }
-      const next = placePiece(pieces, pos, pieceCode(enemyTeam, species))
+      const next = withPiece(pieces, pos, pieceCode(enemyTeam, species))
       if (next !== null) { return next }
     }
   }
@@ -302,9 +302,9 @@ function placeSmotherMate({ pieces, team, ctx, random }) {
         random
       )
       for (const enemyKingPos of enemyKingCandidates) {
-        let next = placePiece(pieces, cornerPos, `${team}${Board.KING}`)
+        let next = withPiece(pieces, cornerPos, `${team}${Board.KING}`)
         if (next === null) { continue }
-        next = placePiece(next, enemyKingPos, `${enemyTeam}${Board.KING}`)
+        next = withPiece(next, enemyKingPos, `${enemyTeam}${Board.KING}`)
         if (next === null) { continue }
         let smotheredOk = true
         for (const e of escape) {
@@ -314,7 +314,7 @@ function placeSmotherMate({ pieces, team, ctx, random }) {
         }
         if (!smotheredOk) { continue }
         if (!respectsAllCaps(enemyTeam, Board.NIGHT, knightPos, ctx, next)) { continue }
-        next = placePiece(next, knightPos, pieceCode(enemyTeam, Board.NIGHT))
+        next = withPiece(next, knightPos, pieceCode(enemyTeam, Board.NIGHT))
         if (next === null) { continue }
         if (!isCheckmate({ pieces: next, team, kingPos: cornerPos })) { continue }
         const committed = commitMovedPiece(ctx, Board.NIGHT, knightPos)
@@ -360,9 +360,9 @@ function placeBackRankMate({ pieces, team, ctx, random }) {
         random
       )
       for (const enemyKingPos of enemyKingCandidates) {
-        let next = placePiece(pieces, kingPos, `${team}${Board.KING}`)
+        let next = withPiece(pieces, kingPos, `${team}${Board.KING}`)
         if (next === null) { continue }
-        next = placePiece(next, enemyKingPos, `${enemyTeam}${Board.KING}`)
+        next = withPiece(next, enemyKingPos, `${enemyTeam}${Board.KING}`)
         if (next === null) { continue }
         // Block forward-rank escapes with own pieces.
         let blocksOk = true
@@ -375,7 +375,7 @@ function placeBackRankMate({ pieces, team, ctx, random }) {
         }
         if (!blocksOk) { continue }
         if (!respectsAllCaps(enemyTeam, Board.ROOK, rookPos, ctx, next)) { continue }
-        next = placePiece(next, rookPos, pieceCode(enemyTeam, Board.ROOK))
+        next = withPiece(next, rookPos, pieceCode(enemyTeam, Board.ROOK))
         if (next === null) { continue }
         if (!isCheckmate({ pieces: next, team, kingPos })) { continue }
         const committed = commitMovedPiece(ctx, Board.ROOK, rookPos)
@@ -410,12 +410,12 @@ function placeQueenMate({ pieces, team, ctx, random }) {
         random
       )
       for (const enemyKingPos of enemyKingCandidates) {
-        let next = placePiece(pieces, kingPos, `${team}${Board.KING}`)
+        let next = withPiece(pieces, kingPos, `${team}${Board.KING}`)
         if (next === null) { continue }
-        next = placePiece(next, enemyKingPos, `${enemyTeam}${Board.KING}`)
+        next = withPiece(next, enemyKingPos, `${enemyTeam}${Board.KING}`)
         if (next === null) { continue }
         if (!respectsAllCaps(enemyTeam, Board.QUEEN, queenPos, ctx, next)) { continue }
-        next = placePiece(next, queenPos, pieceCode(enemyTeam, Board.QUEEN))
+        next = withPiece(next, queenPos, pieceCode(enemyTeam, Board.QUEEN))
         if (next === null) { continue }
         if (!isCheckmate({ pieces: next, team, kingPos })) { continue }
         const committed = commitMovedPiece(ctx, Board.QUEEN, queenPos)
@@ -432,7 +432,7 @@ function placeOwnBlocker({ pieces, pos, team, ctx, random }) {
   for (const s of shuffled(species, random)) {
     if (!legalPlacementForSpecies(pos, s)) { continue }
     if (!respectsAllCaps(team, s, pos, ctx, pieces)) { continue }
-    const placed = placePiece(pieces, pos, pieceCode(team, s))
+    const placed = withPiece(pieces, pos, pieceCode(team, s))
     if (placed !== null) { return placed }
   }
   return null
@@ -499,7 +499,7 @@ export function placeKingsIfAbsent(pieces, random, ctx = { propositions: [] }) {
     for (const pos of candidates) {
       if (anyKingIsAdjacentTo(result, pos)) { continue }
       if (!respectsAllCaps(team, Board.KING, pos, ctx, result)) { continue }
-      const next = placePiece(result, pos, `${team}${Board.KING}`)
+      const next = withPiece(result, pos, `${team}${Board.KING}`)
       if (next === null) { continue }
       result = next
       placed = true

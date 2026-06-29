@@ -1,6 +1,6 @@
 import Rules from 'gameplay/rules'
 import { buildBoardFromLayout, buildLayoutFromPieces, pieceCode, shuffled, pickBlockerTeam, orderedBlockerSpeciesFor } from 'editorV2/panels/condition_preview/shared/board_utils'
-import { placePiece, teamHasKing } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece, teamHasKing } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import { placeKingDeliberately } from 'editorV2/panels/condition_preview/shared/king_placement'
 import { respectsAllCaps } from 'editorV2/panels/condition_preview/forward_proposition/respect_caps'
 
@@ -20,7 +20,7 @@ export const blockersMechanism = {
     for (const square of candidates) {
       for (const species of orderedBlockerSpeciesFor(square, random)) {
         if (!respectsAllCaps(blockerTeam, species, square, ctx, pieces)) { continue }
-        const next = placePiece(pieces, square, pieceCode(blockerTeam, species))
+        const next = withPiece(pieces, square, pieceCode(blockerTeam, species))
         if (next !== null) { return next }
       }
     }

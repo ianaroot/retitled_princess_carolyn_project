@@ -1,6 +1,6 @@
 import { buildBoardFromLayout, buildLayoutFromPieces, pieceCode, shuffled, ALL_POSITIONS } from 'editorV2/panels/condition_preview/shared/board_utils'
 import { placeKingDeliberately } from 'editorV2/panels/condition_preview/shared/king_placement'
-import { placePiece, legalPlacementForSpecies, teamHasKing } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece, legalPlacementForSpecies, teamHasKing } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import { mobilityAt } from 'gameplay/mobility'
 import { respectsAllCaps } from 'editorV2/panels/condition_preview/forward_proposition/respect_caps'
 import { singularSquare, commitPriorRegion, entryConcernsMovedPiece, placeableSpecies } from 'editorV2/panels/condition_preview/forward_proposition/cross_frame/mechanisms/cross_frame_helpers'
@@ -76,7 +76,7 @@ function placeFreshXAndCommit(entry, ctx, pieces, random, moved, destination, mo
     for (const species of shuffled(placeableSpecies(speciesSet), random)) {
       if (!legalPlacementForSpecies(xPos, species)) { continue }
       if (!respectsAllCaps(team, species, xPos, ctx, pieces)) { continue }
-      const withX = placePiece(pieces, xPos, pieceCode(team, species))
+      const withX = withPiece(pieces, xPos, pieceCode(team, species))
       if (withX === null) { continue }
 
       for (const origin of shuffled(origins, random)) {

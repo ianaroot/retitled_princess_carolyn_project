@@ -2,7 +2,7 @@ import Board from 'gameplay/board'
 import Rules from 'gameplay/rules'
 import { originCandidatesForSpecies } from 'editorV2/panels/condition_preview/shared/geometry_utils'
 import { pieceCode, shuffled, HOME_RANK } from 'editorV2/panels/condition_preview/shared/board_utils'
-import { placePiece } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import { committedSpecies } from 'editorV2/panels/condition_preview/shared/singular_constraints'
 
 export const MOVE_KIND_STANDARD = 'standard'
@@ -61,14 +61,14 @@ export function buildPriorBoard({ pieces, singulars, origin, endPos, pieceNotati
   let priorPieces = new Map(pieces)
   priorPieces.delete(endPos)
   const originSpecies = promotionPiece ? Board.PAWN : movedSpecies
-  priorPieces = placePiece(priorPieces, origin, pieceCode(moved.team, originSpecies))
+  priorPieces = withPiece(priorPieces, origin, pieceCode(moved.team, originSpecies))
   if (priorPieces === null) { return null }
 
   if (pieceNotation === 'O-O' || pieceNotation === 'O-O-O') {
     const homeRankStart = HOME_RANK[team] * 8
     const [rookAfterFile, rookPriorFile] = pieceNotation === 'O-O' ? [5, 7] : [3, 0]
     priorPieces.delete(homeRankStart + rookAfterFile)
-    priorPieces = placePiece(priorPieces, homeRankStart + rookPriorFile, pieceCode(team, Board.ROOK))
+    priorPieces = withPiece(priorPieces, homeRankStart + rookPriorFile, pieceCode(team, Board.ROOK))
     if (priorPieces === null) { return null }
     return priorPieces
   }
@@ -76,7 +76,7 @@ export function buildPriorBoard({ pieces, singulars, origin, endPos, pieceNotati
   const captured = singulars.captured_piece
   const capturedSpecies = committedSpecies(captured)
   if (capturedSpecies !== null) {
-    priorPieces = placePiece(priorPieces, capturedPiecePosition ?? endPos, pieceCode(captured.team, capturedSpecies))
+    priorPieces = withPiece(priorPieces, capturedPiecePosition ?? endPos, pieceCode(captured.team, capturedSpecies))
     if (priorPieces === null) { return null }
   }
   return priorPieces

@@ -1,6 +1,6 @@
 import { buildBoardFromLayout, buildLayoutFromPieces, shuffled, pieceCode, pickBlockerTeam, orderedBlockerSpeciesFor } from 'editorV2/panels/condition_preview/shared/board_utils'
 import { placeKingDeliberately } from 'editorV2/panels/condition_preview/shared/king_placement'
-import { placePiece, teamHasKing } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece, teamHasKing } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import {
   sliderPathClear, walkRay, stepsForSliderSpecies, SLIDER_SPECIES
 } from 'editorV2/panels/condition_preview/shared/geometry_utils'
@@ -179,7 +179,7 @@ function applyEngineeredBlockers(originalPieces, hypothetical, mechanismResult, 
     if (hypothetical.has(pos)) { continue }
     if (pos === destination) { continue }
     if (final.has(pos)) { continue }
-    const next = placePiece(final, pos, piece)
+    const next = withPiece(final, pos, piece)
     if (next === null) { continue }
     final = next
   }

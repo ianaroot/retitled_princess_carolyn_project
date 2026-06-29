@@ -63,7 +63,7 @@ export function synthesizeMove(ctx, pieces, random, scenario = standardScenario)
       rescuable.push({ priorPieces, priorBoard, origin, kingTeam: Board.opposingTeam(team), attackerTeam: team, kind: 'prior_turn' })
       continue
     }
-    return { priorBoard, moveObject }
+    return { priorBoard, moveObject, priorPieces }
   }
 
   for (const r of rescuable) {
@@ -97,7 +97,7 @@ function placeBlockerAndRetry(attempt, between, kingTeam, excluded) {
         try { mo = Rules.getMoveObject(origin, endPos, pb) } catch { continue }
         if (mo.illegal) { continue }
         if (!legalPriorTurnState(pb, mo)) { continue }
-        return { priorBoard: pb, moveObject: mo }
+        return { priorBoard: pb, moveObject: mo, priorPieces: withBlock }
       }
     }
   }

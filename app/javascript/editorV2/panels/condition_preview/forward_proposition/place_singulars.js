@@ -1,5 +1,5 @@
 import { pieceCode } from 'editorV2/panels/condition_preview/shared/board_utils'
-import { placePiece } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import { committedSpecies } from 'editorV2/panels/condition_preview/shared/singular_constraints'
 
 export function placeSingulars(singulars, initialPieces = new Map()) {
@@ -24,5 +24,5 @@ function placeIfNotAlready(singular, pieces) {
   if (pieces.has(position)) {
     return pieces.get(position) === expectedCode ? pieces : null
   }
-  return placePiece(pieces, position, expectedCode)
+  return withPiece(pieces, position, expectedCode)
 }

@@ -3,7 +3,7 @@ import { mobilityAt } from 'gameplay/mobility'
 import {
   buildBoardFromLayout, buildLayoutFromPieces, pieceCode, shuffled
 } from 'editorV2/panels/condition_preview/shared/board_utils'
-import { placePiece } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import { activeAttackOrDefendSets } from 'editorV2/panels/condition_preview/forward_proposition/relations/attack_or_defend'
 import { activeAdjacentSets } from 'editorV2/panels/condition_preview/forward_proposition/relations/adjacent'
 import { activeShieldSets } from 'editorV2/panels/condition_preview/forward_proposition/relations/shield'
@@ -95,9 +95,9 @@ function nonNullSpecies(speciesSet) {
 function priorPiecesWithCapture({ pieces, destination, origin, captureSquare, movedTeam, movedSpecies, capturedTeam, capturedSpecies }) {
   let result = new Map(pieces)
   result.delete(destination)
-  result = placePiece(result, origin, pieceCode(movedTeam, movedSpecies))
+  result = withPiece(result, origin, pieceCode(movedTeam, movedSpecies))
   if (result === null) { return null }
-  result = placePiece(result, captureSquare, pieceCode(capturedTeam, capturedSpecies))
+  result = withPiece(result, captureSquare, pieceCode(capturedTeam, capturedSpecies))
   return result
 }
 

@@ -2,7 +2,7 @@ import {
   pieceCode, weightedShuffleSpecies, shuffled
 } from 'editorV2/panels/condition_preview/shared/board_utils'
 import { materialValue } from 'gameplay/board_query_utils'
-import { placePiece, legalPlacementForSpecies } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece, legalPlacementForSpecies } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import { materializeRegion } from 'editorV2/panels/condition_preview/forward_proposition/materialize_region'
 import { edgeBiasedShuffle } from 'editorV2/panels/condition_preview/forward_proposition/mobility/edge_bias'
 import { respectsAllCaps, matches, boardForRegion } from 'editorV2/panels/condition_preview/forward_proposition/respect_caps'
@@ -118,7 +118,7 @@ function placeOneOfSpecies(prop, pieces, ctx, random, species) {
   for (const position of positions) {
     if (!legalPlacementForSpecies(position, species)) { continue }
     if (!respectsAllCaps(prop.team, species, position, ctx, pieces)) { continue }
-    const next = placePiece(pieces, position, code)
+    const next = withPiece(pieces, position, code)
     if (next !== null) { return { pieces: next, species } }
   }
   return null
@@ -147,7 +147,7 @@ function placeOne(prop, pieces, ctx, random) {
     const positions = edgeBiasedShuffle([...region], random, prop.aggregate_mobility_range, ctx.edgeBiasState)
     for (const position of positions) {
       if (!respectsAllCaps(prop.team, species, position, ctx, pieces)) { continue }
-      const next = placePiece(pieces, position, code)
+      const next = withPiece(pieces, position, code)
       if (next !== null) { return { pieces: next, species } }
     }
   }

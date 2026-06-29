@@ -1,5 +1,5 @@
 import { pieceCode, pickPlaceableSpecies } from 'editorV2/panels/condition_preview/shared/board_utils'
-import { placePiece } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { withPiece } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import { intersectRegions } from 'editorV2/panels/condition_preview/forward_proposition/region'
 import { respectsAllCaps } from 'editorV2/panels/condition_preview/forward_proposition/respect_caps'
 
@@ -72,7 +72,7 @@ export function ensureRolePieceAt({ pieces, pos, team, speciesSet, ctx, random }
   const species = pickPlaceableSpecies(speciesSet, pos, random)
   if (species === null) { return null }
   if (!respectsAllCaps(team, species, pos, ctx, pieces)) { return null }
-  return placePiece(pieces, pos, pieceCode(team, species))
+  return withPiece(pieces, pos, pieceCode(team, species))
 }
 
 // Narrows moved_piece.priorRegion by intersecting with `candidates`. Returns

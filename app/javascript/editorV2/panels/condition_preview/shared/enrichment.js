@@ -2,8 +2,8 @@ import ConditionEvaluatorV2 from 'bot_execution/condition_evaluator_v2'
 import { Candidate } from 'editorV2/panels/condition_preview/shared/candidate'
 import Board from 'gameplay/board'
 import Rules from 'gameplay/rules'
-import { shuffled, legalEnrichmentSpecies, ALL_POSITIONS } from 'editorV2/panels/condition_preview/shared/board_utils'
-import { legalPlacementForSpecies } from 'editorV2/panels/condition_preview/shared/piece_placement'
+import { shuffled, legalEnrichmentSpecies, ALL_POSITIONS, buildBoardFromLayout, buildLayoutFromPieces } from 'editorV2/panels/condition_preview/shared/board_utils'
+import { legalPlacementForSpecies, withPiece } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import {
   moveKindForMoveObject, soundForMove, legalPriorTurnState,
   MOVE_KIND_CASTLE, MOVE_KIND_EN_PASSANT
@@ -112,7 +112,7 @@ function buildEnrichmentPlacementPolicy(example, random) {
   }
 }
 
-function deriveVerifiedExample({ combinedPlan, priorBoard, moveObject, baseExample }) {
+function deriveVerifiedExample({ combinedPlan, priorBoard, priorPieces, moveObject, baseExample }) {
   let recomputedMoveObject
   try {
     recomputedMoveObject = Rules.getMoveObject(moveObject.startPosition, moveObject.endPosition, priorBoard)
@@ -140,6 +140,7 @@ function deriveVerifiedExample({ combinedPlan, priorBoard, moveObject, baseExamp
 
   return {
     priorBoard,
+    priorPieces,
     afterBoard,
     moveObject: recomputedMoveObject,
     result: aggregatedResult,
@@ -155,7 +156,8 @@ function deriveVerifiedExample({ combinedPlan, priorBoard, moveObject, baseExamp
 
 export function enrichExample(example, combinedPlan, random) {
   const policy = buildEnrichmentPlacementPolicy(example, random)
-  let basePriorBoard = example.priorBoard.lightClone()
+  let basePieces = example.priorPieces
+  const { recentMoveContext, allowedToMove } = example.priorBoard
   let bestExample = example
   let addedCount = 0
 
@@ -163,14 +165,13 @@ export function enrichExample(example, combinedPlan, random) {
     const placement = policy.nextPlacement()
     if (!placement) { break }
 
-    const trialPriorBoard = basePriorBoard.lightClone()
-    trialPriorBoard._placePiece({
-      position: placement.position,
-      pieceObject: `${placement.team}${placement.species}`
-    })
+    const trialPieces = withPiece(basePieces, placement.position, `${placement.team}${placement.species}`)
+    if (trialPieces === null) { continue }
+    const trialPriorBoard = buildBoardFromLayout(buildLayoutFromPieces(trialPieces), recentMoveContext, allowedToMove)
     const derived = deriveVerifiedExample({
       combinedPlan,
       priorBoard: trialPriorBoard,
+      priorPieces: trialPieces,
       moveObject: example.moveObject,
       baseExample: example
     })
@@ -178,7 +179,7 @@ export function enrichExample(example, combinedPlan, random) {
     if (!derived) { break }
 
     bestExample = derived
-    basePriorBoard = trialPriorBoard
+    basePieces = trialPieces
     addedCount += 1
   }
 

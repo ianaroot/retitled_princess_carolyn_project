@@ -12,7 +12,7 @@ export class ExampleFactory {
     this.combinedPlan = combinedPlan
   }
 
-  build(candidate, { generationPath, moveKind = null, binding = null }) {
+  build(candidate, { generationPath, moveKind = null, binding = null, priorPieces }) {
     const aggregatedResult = buildAggregatedResult(this.combinedPlan, candidate.analysis)
     if (!aggregatedResult) { return null }
 
@@ -26,6 +26,7 @@ export class ExampleFactory {
 
     return {
       priorBoard: candidate.priorBoard,
+      priorPieces,
       afterBoard: candidate.afterBoard,
       moveObject: candidate.moveObject,
       result: aggregatedResult,
