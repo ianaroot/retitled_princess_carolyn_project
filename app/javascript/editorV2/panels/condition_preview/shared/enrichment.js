@@ -2,7 +2,7 @@ import ConditionEvaluatorV2 from 'bot_execution/condition_evaluator_v2'
 import { Candidate } from 'editorV2/panels/condition_preview/shared/candidate'
 import Board from 'gameplay/board'
 import Rules from 'gameplay/rules'
-import { shuffled, legalEnrichmentSpecies, ALL_POSITIONS, buildBoardFromLayout, buildLayoutFromPieces } from 'editorV2/panels/condition_preview/shared/board_utils'
+import { shuffled, legalEnrichmentSpecies, ALL_POSITIONS, buildBoardFromLayout, buildLayoutFromPieces, doublePushSkippedSquare } from 'editorV2/panels/condition_preview/shared/board_utils'
 import { legalPlacementForSpecies, withPiece } from 'editorV2/panels/condition_preview/shared/piece_placement'
 import {
   moveKindForMoveObject, soundForMove, legalPriorTurnState,
@@ -33,8 +33,9 @@ function movePathSquares(priorBoard, moveObject) {
       file += stepFile
       rank += stepRank
     }
-  } else if (species === Board.PAWN && Math.abs(end - start) === 16) {
-    squares.add((start + end) / 2)
+  } else if (species === Board.PAWN) {
+    const skipped = doublePushSkippedSquare(start, end)
+    if (skipped !== null) { squares.add(skipped) }
   }
 
   return squares

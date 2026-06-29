@@ -111,6 +111,12 @@ export function layoutsMatch(left, right) {
   return true
 }
 
+export function doublePushSkippedSquare(start, end) {
+  const sameFile = Board.fileIndex(start) === Board.fileIndex(end)
+  const twoRanks = Math.abs(Board.rankIndex(end) - Board.rankIndex(start)) === 2
+  return sameFile && twoRanks ? (start + end) / 2 : null
+}
+
 export function legalEnrichmentSpecies(pieces, team) {
   const excludePawns = pawnCount(pieces, team) >= PAWN_CAP_PER_TEAM
   return WEIGHTED_SPECIES_DISTRIBUTION.filter(species => {
