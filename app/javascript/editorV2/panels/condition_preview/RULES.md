@@ -52,7 +52,7 @@ See `app/javascript/bot_execution/RULES.md` for the canonical definitions of `mo
 
 ## Placement discipline
 
-All mutations to a pieces `Map<position, pieceCode>` must go through `withPiece` in `shared/piece_placement.js`. Direct `.set()` on a pieces Map bypasses legality guards and has produced verifier crashes via invalid priorBoard states. If you find a raw `.set()` on a pieces Map outside `piece_placement.js`, treat it as a bug to fix or a deliberate exception that needs a comment explaining why.
+Placement discipline. Add a piece to a pieces Map<position, pieceCode> only through withPiece (shared/piece_placement.js) — it carries the placement rules (pawn rank, one king per team, pawn cap) and returns a new Map. Writing the Map directly to place a piece (.set, or any helper that does) bypasses thoserules and has crashed the verifier via invalid priorBoards.(.delete/copy are fine — only placement must go through withPiece.)
 
 **In-progress transition:** `placeWithCaps` in `forward_proposition/respect_caps.js` is being introduced as the canonical wrapper for ctx-having callers — it does `respectsAllCaps` then `withPiece` in one call. Once all forward_proposition callsites use `placeWithCaps`, `withPiece`'s local guards will be stripped and legality enforcement will live entirely in `ctx.propositions` as structural caps (already seeded by `forward_proposition/structural_invariants.js`). Until the refactor lands, both layers run — `withPiece`'s guards remain authoritative for callers without ctx. New ctx-having callsites should prefer `placeWithCaps`; new ctx-less callsites should continue using `withPiece` directly.
 
