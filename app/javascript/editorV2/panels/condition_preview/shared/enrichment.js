@@ -79,10 +79,7 @@ function buildEnrichmentPlacementPolicy(example, random) {
   const movedPieceTeam = example.priorBoard.teamAt(example.moveObject.startPosition)
   const endPositionIsSpecial = example.moveKind !== MOVE_KIND_CASTLE && example.moveKind !== MOVE_KIND_EN_PASSANT
 
-  const currentPieces = new Map()
-  example.priorBoard.layOut.forEach((piece, pos) => {
-    if (piece !== Board.EMPTY_SQUARE) { currentPieces.set(pos, piece) }
-  })
+  const currentPieces = new Map(example.priorPieces)
 
   return {
     nextPlacement() {
